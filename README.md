@@ -94,7 +94,8 @@ HUD follows the youngest session of that folder. If the folder has no session ye
 newest session overall and says so.
 
 To stop, press `Ctrl+C` in the terminal where aihud runs. Closing the window alone leaves the
-server running; `npx aihud` again reuses it and only opens the window.
+server running; `npx aihud` again reuses it and only opens the window. That also holds after an
+update: stop the old server with `Ctrl+C` first, otherwise `npx aihud@latest` reuses the old one.
 
 | Option | What it does |
 |---|---|
@@ -212,6 +213,12 @@ Issues and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING
 ## Security
 
 See [SECURITY.md](SECURITY.md) for what aihud reads and how to report a vulnerability.
+
+## Trademarks and affiliation
+
+aihud is an independent open-source project. It is not affiliated with, endorsed by or sponsored
+by Anthropic, OpenAI or Google. Claude Code, Codex and Antigravity are trademarks of their
+respective holders; their names are used here only to describe compatibility.
 
 ## License
 

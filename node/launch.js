@@ -3,12 +3,13 @@
 //
 //  The only file of the node that starts a process. `aihud serve` never reaches it.
 //  App window: Chrome → Edge → Chromium (first hit wins), or the binary named in AIHUD_BROWSER:
-//      <browser> --app=<url> --window-size=200,900 --user-data-dir=<aihud home>/browser
+//      <browser> --app=<url> --window-size=200,900 --user-data-dir=<aihud home>/browser --no-first-run --no-default-browser-check
 //  Own profile = own process, no extensions. Spawned detached and unref'd: the window neither
 //  keeps the node alive nor dies with it.
 //  Tab (the OS opener: start / open / xdg-open) when `--tab` is set, no browser is found, the
 //  browser cannot do `--app` (Firefox, Snap/Flatpak builds until measured), or the start fails
 //  (error, or exit ≠ 0 within the grace window). A tab never gets narrower than 500 px.
+//  Linux without DISPLAY and WAYLAND_DISPLAY (SSH, headless): neither window nor tab, one line naming the cause.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { spawn as nodeSpawn } from 'node:child_process';
@@ -50,6 +51,11 @@ export function candidates(platform, env = {}) {
     ...onPath('microsoft-edge-stable'), ...onPath('microsoft-edge'), '/opt/microsoft/msedge/msedge',
     ...onPath('chromium'), ...onPath('chromium-browser'),
   ];
+}
+
+/** Linux with neither DISPLAY nor WAYLAND_DISPLAY set: no window and no tab can show up. */
+export function noDisplay(platform, env = {}) {
+  return platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY;
 }
 
 /** Why this binary gets a tab instead of an app window, or null when `--app` is expected to work. */
@@ -98,12 +104,16 @@ export async function openWindow(url, {
   spawn = nodeSpawn, log = console.log, graceMs = 2000,
 } = {}) {
   const io = { platform, spawn, log };
+  if (noDisplay(platform, env)) {
+    log(`aihud: no display found (SSH or headless session) - the node runs at ${url}; use \`aihud serve\` and an ssh port forward to view it from another machine`);
+    return { mode: 'none', why: 'no display' };
+  }
   if (tab) return openTab(url, io, '--tab');
   const browser = findBrowser(platform, fs, env);
   if (!browser) return openTab(url, io, 'no Chrome, Edge or Chromium found');
   if (browser.noApp) return openTab(url, io, browser.noApp);
   const sep = platform === 'win32' ? win32 : posix;
-  const args = [`--app=${url}`, `--window-size=${WINDOW_SIZE}`, `--user-data-dir=${sep.join(home, 'browser')}`];
+  const args = [`--app=${url}`, `--window-size=${WINDOW_SIZE}`, `--user-data-dir=${sep.join(home, 'browser')}`, '--no-first-run', '--no-default-browser-check'];
   const failed = await new Promise((done) => {
     let child;
     try {

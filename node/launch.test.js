@@ -13,7 +13,7 @@ const MAC = {
   edge: '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
   chromium: '/Applications/Chromium.app/Contents/MacOS/Chromium',
 };
-const LINUX_ENV = { PATH: '/usr/local/bin:/usr/bin' };
+const LINUX_ENV = { PATH: '/usr/local/bin:/usr/bin', DISPLAY: ':0' };
 
 const fakeFs = (...present) => ({ existsSync: (p) => present.includes(p) });
 
@@ -73,7 +73,7 @@ test('app window: detached spawn, own profile under the aihud home, fixed 200x90
   assert.equal(s.calls.length, 1, 'spawn was called exactly once');
   const [call] = s.calls;
   assert.equal(call.cmd, EDGE_WIN);
-  assert.deepEqual(call.args, [`--app=${URL_HUD}`, `--window-size=${WINDOW_SIZE}`, '--user-data-dir=C:\\Users\\u\\.aihud\\browser']);
+  assert.deepEqual(call.args, [`--app=${URL_HUD}`, `--window-size=${WINDOW_SIZE}`, '--user-data-dir=C:\\Users\\u\\.aihud\\browser', '--no-first-run', '--no-default-browser-check']);
   assert.equal(WINDOW_SIZE, '200,900');
   assert.equal(call.opts.detached, true);
   assert.equal(call.opts.stdio, 'ignore');
@@ -113,7 +113,7 @@ test('--tab opens a tab via the OS opener and never looks for the app window', a
   for (const platform of ['win32', 'darwin', 'linux']) {
     const s = fakeSpawn();
     const c = capture();
-    const r = await openWindow(URL_HUD, { home: '/h', tab: true, platform, env: WIN_ENV, fs: fakeFs(CHROME_WIN, MAC.chrome), spawn: s.spawn, log: c.log });
+    const r = await openWindow(URL_HUD, { home: '/h', tab: true, platform, env: { ...WIN_ENV, DISPLAY: ':0' }, fs: fakeFs(CHROME_WIN, MAC.chrome), spawn: s.spawn, log: c.log });
     assert.equal(s.calls.length, 1);
     assertTab(s, c, r, platform, /--tab/);
   }
@@ -146,7 +146,7 @@ test('spawn exits ≠ 0 within the grace window → tab fallback', async () => {
 test('spawn error (binary missing) → tab fallback', async () => {
   const s = fakeSpawn((child, call) => { if (call.cmd !== 'xdg-open') child.emit('error', new Error('spawn ENOENT')); });
   const c = capture();
-  const r = await openWindow(URL_HUD, { home: '/h', platform: 'linux', env: { AIHUD_BROWSER: '/nope/chrome' }, fs: fakeFs(), spawn: s.spawn, log: c.log, graceMs: 2000 });
+  const r = await openWindow(URL_HUD, { home: '/h', platform: 'linux', env: { AIHUD_BROWSER: '/nope/chrome', DISPLAY: ':0' }, fs: fakeFs(), spawn: s.spawn, log: c.log, graceMs: 2000 });
   assertTab(s, c, r, 'linux', /ENOENT/);
 });
 
@@ -158,4 +158,27 @@ test('a missing OS opener (async spawn error) prints "open <url> yourself"', asy
   assert.ok(s.calls.length >= 1, 'spawn was never called');
   await new Promise((ok) => setTimeout(ok, 30));
   assert.match(c.out.join('\n'), /could not open a browser - open http:\/\/localhost:4747\/hud yourself/);
+});
+
+test('no display: only Linux with neither DISPLAY nor WAYLAND_DISPLAY counts as "no display"', async () => {
+  const { noDisplay } = await import('./launch.js');
+  assert.equal(noDisplay('linux', {}), true);
+  assert.equal(noDisplay('linux', { DISPLAY: '', WAYLAND_DISPLAY: '' }), true);
+  assert.equal(noDisplay('linux', { DISPLAY: ':0' }), false);
+  assert.equal(noDisplay('linux', { WAYLAND_DISPLAY: 'wayland-0' }), false);
+  assert.equal(noDisplay('win32', {}), false);
+  assert.equal(noDisplay('darwin', {}), false);
+});
+
+test('no display on Linux (SSH, headless): one line naming the cause, no browser, no tab', async () => {
+  for (const tab of [false, true]) {
+    const s = fakeSpawn();
+    const c = capture();
+    const r = await openWindow(URL_HUD, { home: '/h', tab, platform: 'linux', env: { PATH: '/usr/bin' }, fs: fakeFs('/usr/bin/google-chrome'), spawn: s.spawn, log: c.log, graceMs: 10 });
+    assert.equal(s.calls.length, 0, 'something was spawned without a display');
+    assert.equal(c.out.length, 1, c.out.join('\n'));
+    assert.match(c.out[0], /no display found \(SSH or headless session\) - the node runs at http:\/\/localhost:4747\/hud; use `aihud serve` and an ssh port forward/);
+    assert.doesNotMatch(c.out[0], /install Chrome/);
+    assert.deepEqual(r, { mode: 'none', why: 'no display' });
+  }
 });

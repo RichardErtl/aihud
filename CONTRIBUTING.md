@@ -16,6 +16,13 @@ than it was proposed — you will be credited either way.
 For larger changes, please open an issue first, so we can agree on the direction before you
 spend time on it.
 
+## How pull requests land
+
+The GitHub repository is a one-way mirror of a private origin repository. Pull requests are
+welcome and are reviewed here. An accepted change is taken over by hand into the origin and
+arrives with the next mirror commit; the pull request is then closed with a reference to that
+commit. Your authorship is kept in the commit message (`Co-authored-by`).
+
 ## Tests
 
 ```sh

@@ -1,0 +1,29 @@
+name: tests
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [22, 24]
+    # The browser tests find Google Chrome on their own (node/launch.js findBrowser: PATH
+    # google-chrome on Linux, Program Files on Windows, /Applications on macOS); all three
+    # runner images ship it, so AIHUD_BROWSER stays unset. They start it with --headless=new,
+    # which needs no display: no xvfb on Linux. Without a browser they skip, never fail.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # This repository's root is the package root, so the suite runs right here.
+      - run: node --test
+        working-directory: .

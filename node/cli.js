@@ -35,6 +35,8 @@ export const HELP = `usage:
       place a tile in the active portrait and/or landscape layout (a shipped layout is copied first)
   aihud install-skill [--force] [--home <dir>]
       copy the /new-tile skill to ~/.claude/skills/new-tile/ (always there; --home only changes the tiles folder it names)
+  aihud --version | -v | version
+      print the version
 
   --projects   transcript folder (default ~/.claude/projects, env AIHUD_PROJECTS)
   --home       aihud folder for settings, sidecars, own tiles and layouts (default ~/.aihud, env AIHUD_HOME)
@@ -45,7 +47,7 @@ export const HELP = `usage:
 
 const OPTIONS = {
   port: { type: 'string' }, projects: { type: 'string' }, home: { type: 'string' }, poll: { type: 'string' },
-  title: { type: 'string' }, note: { type: 'string' }, help: { type: 'boolean', short: 'h' }, tab: { type: 'boolean' }, orientation: { type: 'string' },
+  title: { type: 'string' }, note: { type: 'string' }, help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'v' }, tab: { type: 'boolean' }, orientation: { type: 'string' },
 };
 
 function portOf(value, home) {
@@ -126,6 +128,7 @@ export async function main(argv, {
   }
   const { values, positionals } = parsed;
   const [command, ...rest] = positionals;
+  if (values.version || (command === 'version' && !rest.length)) { log(version); return 0; }
   try {
     if (command === undefined && !values.help) return await start(values, log, { open, fetchFn, onServe });
     if (command === 'serve' && !values.help) { await serve(values, log, onServe); return 0; }

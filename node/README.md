@@ -9,11 +9,13 @@ Start it with `npx aihud serve`; it opens no browser.
 aihud node already answers on the port (`GET /` with `name: "aihud"`), it only opens the window and
 exits 0. App window: the first of Chrome → Edge → Chromium found (per OS candidate list in
 `launch.js`), or the binary in `AIHUD_BROWSER` (beats the search), started detached as
-`<browser> --app=<url> --window-size=200,900 --user-data-dir=<aihud home>/browser` (own profile,
+`<browser> --app=<url> --window-size=200,900 --user-data-dir=<aihud home>/browser --no-first-run --no-default-browser-check` (own profile,
 no extensions; closing the node leaves the window alone). A normal tab via the OS opener
 (`start` / `open` / `xdg-open`) instead, with a console hint that a tab never gets narrower than
 500 px, when `--tab` is set, nothing is found, the browser is Firefox or a Snap/Flatpak build
 (not supported until measured), or the browser fails (error, or exit ≠ 0 within 2 s).
+On Linux with neither `DISPLAY` nor `WAYLAND_DISPLAY` (SSH, headless) neither window nor tab:
+one line names the missing display and the node URL, the node keeps running.
 
 ## Folders
 

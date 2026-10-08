@@ -2,7 +2,7 @@
 // `aihud serve` child process on 4396 (own PID, stopped in `finally`). Temp folders only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -102,6 +102,42 @@ test('help: `help`, `--help` and unknown commands print the usage, never start a
   const bogus = capture();
   assert.equal(await main(['frobnicate'], bogus.io), 2);
   assert.equal(await main(['serve', '--bogus'], capture().io), 2);
+});
+
+test('version: `--version`, `-v` and `version` print the version alone and exit 0 - no window, no node', async () => {
+  const opened = [];
+  const open = async (url) => { opened.push(url); };
+  const onServe = () => assert.fail('a version call started the node');
+  for (const args of [['--version'], ['-v'], ['version']]) {
+    const c = capture();
+    assert.equal(await main(args, { ...c.io, version: '9.9.9', open, onServe }), 0, args.join(' '));
+    assert.deepEqual(c.out, ['9.9.9'], args.join(' '));
+    assert.deepEqual(c.err, [], args.join(' '));
+  }
+  assert.deepEqual(opened, [], 'a version call opened a window');
+  // the real bin reads the version from package.json
+  const { version } = JSON.parse(readFileSync(join(HERE, '..', 'package.json'), 'utf8'));
+  const run = spawnSync(process.execPath, [BIN, '--version'], { encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.trim(), version);
+});
+
+test('node guard: below Node 22 one clear line and exit 1, before the CLI is loaded', async () => {
+  const { nodeTooOld } = await import('./node-guard.js');
+  const msg = (v) => `aihud needs Node 22 or newer (you have ${v}). https://nodejs.org`;
+  assert.equal(nodeTooOld('v20.0.0'), msg('v20.0.0'));
+  assert.equal(nodeTooOld('v18.19.1'), msg('v18.19.1'));
+  assert.equal(nodeTooOld('v22.0.0'), null);
+  assert.equal(nodeTooOld('v24.19.0'), null);
+  // the bin itself, with an old version faked in before it runs
+  const fake = 'data:text/javascript,Object.defineProperty(process,"version",{value:"v20.0.0"})';
+  const old = spawnSync(process.execPath, ['--import', fake, BIN, '--version'], { encoding: 'utf8' });
+  assert.equal(old.status, 1, old.stdout + old.stderr);
+  assert.equal(old.stderr.trim(), msg('v20.0.0'));
+  assert.equal(old.stdout, '');
+  // static imports are hoisted: the bin may import statically only what an old Node can load
+  const statics = [...readFileSync(BIN, 'utf8').matchAll(/^import\b[^'"]*['"]([^'"]+)['"]/gm)].map((m) => m[1]);
+  assert.deepEqual(statics, ['node:fs', '../node/node-guard.js']);
 });
 
 test('`aihud serve` as a real process: listens on the given port, serves JSON, opens nothing', async () => {
