@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>aihud probe · Minimal tiles</title>
+<style>
+  body { margin: 0; padding: 16px; background: #888; font: 11px system-ui, sans-serif; display: flex; gap: 16px; align-items: flex-start; }
+  .theme { padding: 12px; border-radius: 8px; background: var(--aihud-bg); color: var(--aihud-text); }
+  .theme > p { margin: 14px 0 6px; color: var(--aihud-dim); }
+  .theme > p:first-child { margin-top: 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .cap { color: var(--aihud-faint); margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cell { outline: 1px dashed var(--aihud-line); width: max-content; }
+</style>
+</head>
+<body>
+<script type="module">
+  // Probe page of the Minimal tiles: every tile in dark and light, drawn with the data handed to
+  // window.aihudProbe (the probe script builds it with the reader over its fixtures). Unit from ?u=.
+  const blocks = ['header', 'context', 'top-three-subagents', 'time', 'tokens', 'subagents', 'skills'];
+  const names = ['portrait', 'landscape'].flatMap((o) => blocks.map((b) => `${b}-minimal-${o}`));
+  const mods = Object.fromEntries(await Promise.all(names.map(async (n) => [n, await import(`./${n}.js`)])));
+  const contract = await (await fetch('./contract.json')).json();
+  const unit = Number(new URLSearchParams(location.search).get('u') || 20);
+  const themes = new URLSearchParams(location.search).get('themes') || 'dark,light';
+
+  function place(parent, name, data) {
+    const { meta, render } = mods[name];
+    const [s] = meta.sizes;
+    const wrap = document.createElement('div');
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.tile = name;
+    const cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.textContent = `${name} · ${s.cols}×${s.rows} · ${s.cols * unit}×${s.rows * unit}px`;
+    wrap.append(cell, cap);
+    parent.append(wrap);
+    render(cell, data, { ...s, unit });
+  }
+
+  window.aihudProbe = ({ full, empty, label }) => {
+    document.body.replaceChildren();
+    for (const theme of themes.split(',')) {
+      const t = document.createElement('div');
+      t.className = 'theme';
+      for (const v of contract.designVariables) t.style.setProperty(v.name, v[theme]);
+      const say = (s) => { const p = document.createElement('p'); p.textContent = s; t.append(p); };
+      say(`${theme} · unit ${unit} · ${label}`);
+      const portrait = document.createElement('div');
+      portrait.className = 'row';
+      const a = document.createElement('div'); a.className = 'col';
+      const b = document.createElement('div'); b.className = 'col';
+      portrait.append(a, b);
+      blocks.forEach((bl, i) => place(i < 4 ? a : b, `${bl}-minimal-portrait`, full));
+      t.append(portrait);
+      say('landscape');
+      const land = document.createElement('div');
+      land.className = 'row';
+      blocks.forEach((bl) => place(land, `${bl}-minimal-landscape`, full));
+      t.append(land);
+      say('empty state (no data)');
+      const none = document.createElement('div');
+      none.className = 'row';
+      for (const bl of ['header', 'context', 'top-three-subagents', 'tokens']) place(none, `${bl}-minimal-portrait`, empty);
+      for (const bl of ['time', 'subagents', 'skills']) place(none, `${bl}-minimal-landscape`, empty);
+      t.append(none);
+      document.body.append(t);
+    }
+    // fit check: the tile box must be exactly its size, and no drawn element (text, svg) may reach
+    // past the card (the box minus the 2 px inset) — clipped or cut text is a finding, shown by name.
+    const over = [...document.querySelectorAll('.cell')].flatMap((c) => {
+      const [s] = mods[c.dataset.tile].meta.sizes;
+      const box = c.firstElementChild.getBoundingClientRect();
+      const bad = [];
+      if (Math.abs(box.width - s.cols * unit) > 0.5 || Math.abs(box.height - s.rows * unit) > 0.5) bad.push(`${c.dataset.tile}:box ${box.width}x${box.height}`);
+      const inset = 2 * unit / 20;
+      for (const e of c.firstElementChild.querySelectorAll('span, svg, div')) {
+        if (!e.getClientRects().length || e.closest('[role="listbox"]')) continue;
+        const r = e.getBoundingClientRect();
+        const past = Math.max(box.x + inset - r.x, r.right - (box.right - inset), box.y + inset - r.y, r.bottom - (box.bottom - inset));
+        if (past > 0.5) bad.push(`${c.dataset.tile}:${e.tagName.toLowerCase()} "${e.textContent.slice(0, 16)}" +${past.toFixed(1)}px`);
+      }
+      return bad;
+    });
+    document.body.dataset.tiles = String(document.querySelectorAll('.cell').length);
+    document.body.dataset.over = JSON.stringify(over);
+    return { tiles: document.querySelectorAll('.cell').length, over };
+  };
+  document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

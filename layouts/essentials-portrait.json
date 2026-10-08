@@ -1,0 +1,11 @@
+{
+  "name": "essentials portrait",
+  "orientation": "portrait",
+  "tiles": [
+    { "tile": "header-essentials-portrait", "col": 0, "row": 0 },
+    { "tile": "context-essentials-portrait", "col": 0, "row": 3 },
+    { "tile": "time-essentials-portrait", "col": 0, "row": 10 },
+    { "tile": "subagents-essentials-portrait", "col": 0, "row": 14 },
+    { "tile": "tokens-essentials-portrait", "col": 0, "row": 17 }
+  ]
+}

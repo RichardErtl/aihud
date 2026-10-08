@@ -1,0 +1,76 @@
+/* The HUD strip. Colours only from the design variables of tiles/CONTRACT.md; hud.js sets
+   data-theme on <html> (settings.theme, else the system preference) and lays the colour overrides
+   of settings.design_variables (the window's Settings) inline over these values. */
+:root, :root[data-theme="dark"] {
+  --aihud-bg: #0b0d10; --aihud-panel: #13161b; --aihud-line: #232830; --aihud-line-2: #1c2027;
+  --aihud-text: #e6e8eb; --aihud-dim: #8a929c; --aihud-faint: #4a525c;
+  --aihud-main: #cfd6df; --aihud-sub: #6b7580; --aihud-role: #7d8896;
+  --aihud-series-1: #8fb3ff; --aihud-series-2: #5d7fd6; --aihud-series-3: #3a5596;
+  --aihud-heat-0: #ffffff; --aihud-heat-30: #ffd21f; --aihud-heat-50: #ff8c1a; --aihud-heat-75: #e8301c; --aihud-heat-100: #a0001a;
+  --aihud-heat-text-0: #ffffff; --aihud-heat-text-30: #ffd21f; --aihud-heat-text-50: #ff8c1a; --aihud-heat-text-75: #e8301c; --aihud-heat-text-100: #a0001a;
+  --aihud-heat-rest: 0.13; --aihud-glow: 3px; --aihud-glow-core: 0.45; --aihud-glow-mid: 0.16; --aihud-glow-halo: 0.22;
+  --aihud-role-1: #c9b8ff; --aihud-role-2: #9d86f0; --aihud-role-3: #6f5bc4;
+  --aihud-absent: #a78bfa;
+}
+:root[data-theme="light"] {
+  --aihud-bg: #eef0f3; --aihud-panel: #ffffff; --aihud-line: #e1e4e8; --aihud-line-2: #eceef1;
+  --aihud-text: #1a1d21; --aihud-dim: #5f6873; --aihud-faint: #a0a7b0;
+  --aihud-main: #3b4350; --aihud-sub: #9aa3ad; --aihud-role: #7d8896;
+  --aihud-series-1: #3d6fe0; --aihud-series-2: #6b8fe6; --aihud-series-3: #a9bff2;
+  --aihud-heat-0: #c9ced4; --aihud-heat-30: #e0a800; --aihud-heat-50: #f07800; --aihud-heat-75: #d8261a; --aihud-heat-100: #8b0016;
+  --aihud-heat-text-0: #7d8590; --aihud-heat-text-30: #a87d00; --aihud-heat-text-50: #d96500; --aihud-heat-text-75: #d8261a; --aihud-heat-text-100: #8b0016;
+  --aihud-heat-rest: 0.18; --aihud-glow: 0px; --aihud-glow-core: 0.38; --aihud-glow-mid: 0.12; --aihud-glow-halo: 0.12;
+  --aihud-role-1: #6d4fd1; --aihud-role-2: #9479e6; --aihud-role-3: #c2b2f2;
+  --aihud-absent: #7c3aed;
+}
+:root {
+  --aihud-font: system-ui, -apple-system, Segoe UI, sans-serif;
+  --aihud-font-mono: ui-monospace, Consolas, monospace;
+  --aihud-radius: 6px; --aihud-radius-small: 2px;
+}
+
+/* The unit is measured against the inner width: no scrollbar may take a share of it.
+   A tall portrait layout still scrolls; a landscape band wider than the window clips on the right. */
+html { overflow-x: hidden; overflow-y: auto; scrollbar-width: none; }
+html::-webkit-scrollbar { display: none; }
+html, body { margin: 0; padding: 0; background: var(--aihud-bg); color: var(--aihud-text); font-family: var(--aihud-font); }
+
+/* Tiles fill their cell; gaps and separators belong to the grid shell (none in this version). */
+#hud .grid { display: grid; gap: 0; }
+#hud .tile { overflow: hidden; min-width: 0; min-height: 0; }
+#hud .tile.missing {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  border: 1px dashed var(--aihud-line); border-radius: var(--aihud-radius);
+  color: var(--aihud-faint); font-size: 11px; overflow-wrap: anywhere; text-align: center;
+}
+/* The tip (hud.js): a bubble at the marked value, drawn from the catalog. Colours only from the design
+   variables; position:fixed = window coordinates, hud.js keeps it inside the strip / the band. */
+.aihud-tip {
+  position: fixed; z-index: 50; box-sizing: border-box; pointer-events: none;
+  padding: 7px 9px 8px; border: 1px solid var(--aihud-line); border-radius: var(--aihud-radius);
+  background: color-mix(in srgb, var(--aihud-panel) 94%, var(--aihud-text)); color: var(--aihud-text);
+  font: 11px/1.4 var(--aihud-font);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--aihud-text) 16%, transparent);
+}
+.aihud-tip[hidden] { display: none; }
+.aihud-tip .tip-body { overflow: hidden; }
+.aihud-tip .tip-entry + .tip-entry { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--aihud-line-2); }
+.aihud-tip[data-wide] .tip-body { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); column-gap: 9px; }
+.aihud-tip[data-wide] .tip-entry + .tip-entry { margin-top: 0; padding-top: 0; border-top: 0; padding-left: 9px; border-left: 1px solid var(--aihud-line-2); }
+.aihud-tip .tip-text { overflow-wrap: anywhere; }
+.aihud-tip .tip-meta { margin-top: 5px; color: var(--aihud-dim); font-size: 10.5px; line-height: 17px; }
+.aihud-tip .tip-src {
+  display: inline-block; margin-right: 6px; padding: 0 6px; line-height: 14px; white-space: nowrap;
+  border: 1px solid var(--aihud-line); border-radius: 999px; color: var(--aihud-dim);
+}
+.aihud-tip .tip-src.est { color: var(--aihud-heat-text-30); border-color: color-mix(in srgb, var(--aihud-heat-text-30) 50%, transparent); }
+.aihud-tip .tip-caret {
+  position: absolute; width: 8px; height: 8px; transform: rotate(45deg);
+  background: inherit; border: 1px solid var(--aihud-line);
+}
+.aihud-tip .tip-caret[data-side="top"] { top: -5px; border-right: 0; border-bottom: 0; }
+.aihud-tip .tip-caret[data-side="bottom"] { bottom: -5px; border-left: 0; border-top: 0; }
+.aihud-tip .tip-caret[data-side="left"] { left: -5px; border-top: 0; border-right: 0; }
+.aihud-tip .tip-caret[data-side="right"] { right: -5px; border-bottom: 0; border-left: 0; }
+#hud .status { margin: 8px; color: var(--aihud-faint); font-size: 11px; }
+#hud .status:empty { display: none; }

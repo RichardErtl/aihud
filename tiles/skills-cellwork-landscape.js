@@ -1,0 +1,223 @@
+// Cellwork · skills · landscape (12 × 6).
+// Standalone: no imports, no network, colours only from the design variables (CONTRACT.md).
+
+export const meta = {
+  name: 'skills-cellwork-landscape',
+  contentBlock: 'skills',
+  style: 'cellwork',
+  orientation: 'landscape',
+  sizes: [{ cols: 12, rows: 6 }],
+  contractVersion: '1.1',
+};
+
+// value marks (CONTRACT.md "Value marks and the tip"); the count is the number of start entries of that name
+const F_NAME = 'turn.turns[].skills[].name';
+const F_LIST = 'turn.turns[].skills';
+const F_TOK = 'turn.turns[].skills[].tokens_in turn.turns[].skills[].tokens_out';
+const F_SHARE = F_TOK + ' live.instances[].tokens_total';
+const F_TIME = 'turn.turns[].skills[].time';
+
+export function render(el, data, size) {
+  const d = data || {}, g = new Cells(size.cols, size.rows), W = g.c, H = g.r, R = W - 2;
+  const { list, starts } = skillData(d), i = inst(d), total = i && isNum(i.tokens_total) ? i.tokens_total : null, sp = spanOf(d);
+  g.box(K.frame, {
+    tl: [[' skills ', K.dim]],
+    tr: starts.length ? [[' ' + starts.length + '× ', K.dim, { field: F_LIST }]] : null,
+    bl: sp ? [[' ' + hhmm(sp.a) + ' ', K.faint, { field: 'session.started_at' }]] : null,
+    br: sp ? [[' ' + hhmm(sp.b) + ' ', K.faint, { field: sp.fb }]] : null,
+  });
+  const row = (y, s, strong) => {
+    g.text(1, y, fit(s.name, R - 11), { fg: strong ? K.text : K.dim, field: F_NAME });
+    g.rtext(R - 6, y, '×' + s.count, { fg: K.dim, field: F_LIST });
+    g.rtext(R, y, fmtTok(s.tokens), { fg: s.tokens == null ? K.faint : K.main, field: s.tokens == null ? undefined : F_TOK });
+  };
+  if (!list.length) {
+    const miss = notRecorded(d, 'turn', 'skills');   // skills not recorded by the provider: the violet dash, no "none" text
+    g.text(2, 2, '–', miss ? { fg: 'var(--aihud-absent)', field: F_LIST } : { fg: K.faint });
+    if (!miss && d.turn && Array.isArray(d.turn.turns)) { g.text(4, 2, 'no skill calls', { fg: K.faint }); g.text(4, 3, 'this session', { fg: K.faint }); }   // inside columns 4..R, wrapped at a word
+  } else if (list.length === 1) {
+    const s = list[0], share = total && s.tokens != null ? s.tokens / total : null;
+    g.text(1, 1, fit(s.name, R - 4), { fg: K.text, field: F_NAME });
+    g.rtext(R, 1, '×' + s.count, { fg: K.dim, field: F_LIST });
+    lbar(g, 1, 2, R - 7, share, K.s1, null, share != null ? F_SHARE : null);
+    g.rtext(R, 2, fmtPct(share), { fg: K.dim, field: share != null ? F_SHARE : undefined });
+    g.segs(1, 3, [['turn ', K.faint], [s.turn != null ? String(s.turn) : '–', K.dim, s.turn != null ? { field: 'turn.turns[].number turn.turns[].skills[].time' } : undefined], ['  ', K.faint], [s.last != null ? hhmmss(s.last) : '–', K.faint, s.last != null ? { field: F_TIME } : undefined]]);
+    g.rtext(R, 3, fmtTok(s.tokens), { fg: s.tokens == null ? K.faint : K.main, field: s.tokens == null ? undefined : F_TOK });
+  } else {
+    const shown = list.length > 3 ? list.slice(0, 2) : list;
+    shown.forEach((s, n) => row(1 + n, s, !n));
+    if (shown.length < list.length) g.text(1, 3, '+' + (list.length - shown.length) + ' more', { fg: K.faint, field: F_LIST });
+  }
+  // row 4: activity lane over the session - lit while a turn runs, diamond where a skill started
+  const w = R, y = H - 2;
+  for (let x = 0; x < w; x++) g.set(1 + x, y, ' ', { seg: true, band: [0.58, 0.78], ghost: K.ghost });
+  if (sp) {
+    const dt = (sp.b - sp.a) / w;
+    for (const t of turnsOf(d)) {
+      const s = tms(t.started_at); if (s == null) continue;
+      const e = s + (isNum(t.duration_s) ? t.duration_s * 1000 : 0);
+      for (let x = Math.floor((s - sp.a) / dt); x <= Math.min(w - 1, Math.floor((e - sp.a) / dt)); x++)
+        if (x >= 0) g.set(1 + x, y, '█', { fg: K.sub, seg: true, band: [0.58, 0.78], ghost: K.ghost, field: 'turn.turns[].started_at turn.turns[].duration_s' });
+    }
+    for (const s of starts) { const x = Math.min(w - 1, Math.max(0, Math.floor((s.at - sp.a) / dt))); g.set(1 + x, y, '◆', { fg: K.s1, glow: true, field: F_TIME }); }
+  }
+  ruler(g, H - 1, 1, R, d, []);
+  paint(el, g, size);
+}
+
+// ── Cellwork kit (cells buffer -> DOM; copied in so the tile stands alone) ──
+const V = (n) => 'var(--aihud-' + n + ')';
+const K = {
+  text: V('text'), dim: V('dim'), faint: V('faint'), main: V('main'), sub: V('sub'), bg: V('bg'),
+  s1: V('series-1'), s2: V('series-2'), s3: V('series-3'), ghost: V('line'),
+  frame: 'color-mix(in srgb, var(--aihud-faint) 70%, var(--aihud-line))',
+};
+const ARROW = '';
+class Cells {
+  constructor(cols, rows) {
+    this.c = cols * 2; this.r = rows;
+    this.g = Array.from({ length: rows }, () => Array.from({ length: this.c }, () => ({ ch: ' ' })));
+  }
+  set(x, y, ch, st) { if (x < 0 || y < 0 || x >= this.c || y >= this.r) return; this.g[y][x] = Object.assign({ ch }, st || {}); }
+  at(x, y) { return this.g[y] && this.g[y][x]; }
+  text(x, y, s, st) { for (const ch of [...s]) this.set(x++, y, ch, st); return x; }
+  rtext(xe, y, s, st) { return this.text(xe - [...s].length + 1, y, s, st); }
+  segs(x, y, a) { for (const [s, fg, ex] of a) x = this.text(x, y, s, Object.assign({ fg }, ex || {})); return x; }
+  box(fg, L) {
+    const c = this.c, r = this.r; L = L || {};
+    for (let x = 1; x < c - 1; x++) { this.set(x, 0, '─', { fg }); this.set(x, r - 1, '─', { fg }); }
+    for (let y = 1; y < r - 1; y++) { this.set(0, y, '│', { fg }); this.set(c - 1, y, '│', { fg }); }
+    this.set(0, 0, '╭', { fg }); this.set(c - 1, 0, '╮', { fg }); this.set(0, r - 1, '╰', { fg }); this.set(c - 1, r - 1, '╯', { fg });
+    for (const [l, rr, y] of [[L.tl, L.tr, 0], [L.bl, L.br, r - 1]]) {
+      const le = l ? this.segs(2, y, l) : 1;                       // first cell after the left label
+      if (rr) { const x0 = c - 2 - seglen(rr); if (x0 >= le) this.segs(x0, y, rr); }   // skip a right label that would overlap
+    }
+  }
+}
+const seglen = (a) => a.reduce((n, s) => n + [...s[0]].length, 0);
+const fit = (s, n) => ([...s].length <= n ? s : [...s].slice(0, Math.max(1, n - 1)).join('') + '…');
+const hblock = (e) => (e >= 8 ? '█' : e > 0 ? String.fromCodePoint(0x2590 - e) : ' ');  // left eighths
+const ARMS = { '─': 'lr', '│': 'ud', '┴': 'lru', '┬': 'lrd' };
+const BLK = { '█': [0, 0, 1, 1] };
+for (let e = 1; e <= 7; e++) { BLK[String.fromCodePoint(0x2580 + e)] = [0, 1 - e / 8, 1, 1]; BLK[String.fromCodePoint(0x2590 - e)] = [0, 0, e / 8, 1]; }
+
+/** Cells -> DOM, exactly cols*unit x rows*unit; returns the root */
+function paint(el, g, size) {
+  const u = size.unit, cw = u / 2, k = u / 20, t = Math.max(1, Math.round(k)), mx = (cw - t) / 2, my = (u - t) / 2;
+  const doc = el.ownerDocument, root = doc.createElement('div');
+  root.style.cssText = 'position:relative;display:grid;overflow:hidden;'
+    + 'grid-template-columns:repeat(' + g.c + ',' + cw + 'px);grid-template-rows:repeat(' + g.r + ',' + u + 'px);'
+    + 'width:' + g.c * cw + 'px;height:' + g.r * u + 'px;background:var(--aihud-bg);color:var(--aihud-text);'
+    + 'font:' + (u * 0.65).toFixed(2) + 'px/' + u + 'px var(--aihud-font-mono);font-variant-numeric:tabular-nums';
+  const m = { u, cw, k, t, mx, my };
+  for (const row of g.g) for (const cell of row) {
+    const d = doc.createElement('div');
+    d.style.cssText = 'position:relative;text-align:center;white-space:pre;overflow:hidden';
+    cellDraw(d, cell, m);
+    root.appendChild(d);
+  }
+  el.replaceChildren(root);
+  return root;
+}
+function cellDraw(d, cell, m) {
+  const { u, cw, k, t, mx, my } = m, ch = cell.ch, fg = cell.fg || K.text;
+  const px = (v) => v + 'px', glow = (c) => (cell.glow ? '0 0 var(--aihud-glow) ' + c : 'none');
+  const add = (css) => { const i = d.ownerDocument.createElement('i'); i.style.cssText = 'position:absolute;display:block'; Object.assign(i.style, css); d.appendChild(i); return i; };
+  const hline = (c) => { add({ left: 0, right: 0, top: px(my), height: px(t), background: c }); };
+  if (cell.bg) d.style.background = cell.bg;
+  if (cell.clk != null) d.dataset.clk = cell.clk;
+  if (cell.field) d.setAttribute('data-field', cell.field);
+  if (ARMS[ch]) {
+    const a = ARMS[ch];
+    if (a.includes('l')) add({ left: 0, top: px(my), width: px(mx + t), height: px(t), background: fg });
+    if (a.includes('r')) add({ left: px(mx), top: px(my), right: 0, height: px(t), background: fg });
+    if (a.includes('u')) add({ left: px(mx), top: 0, width: px(t), height: px(my + t), background: fg });
+    if (a.includes('d')) add({ left: px(mx), top: px(my), width: px(t), bottom: 0, background: fg });
+    return;
+  }
+  const bd = t + 'px solid ' + fg, rad = px(cw * 0.9);
+  if (ch === '╭') return void add({ left: px(mx), top: px(my), right: 0, bottom: 0, borderLeft: bd, borderTop: bd, borderTopLeftRadius: rad });
+  if (ch === '╮') return void add({ left: 0, top: px(my), right: px(mx), bottom: 0, borderRight: bd, borderTop: bd, borderTopRightRadius: rad });
+  if (ch === '╰') return void add({ left: px(mx), top: 0, right: 0, bottom: px(my), borderLeft: bd, borderBottom: bd, borderBottomLeftRadius: rad });
+  if (ch === '╯') return void add({ left: 0, top: 0, right: px(mx), bottom: px(my), borderRight: bd, borderBottom: bd, borderBottomRightRadius: rad });
+  if (ch === ARROW) return void add({ left: 0, top: 0, width: px(cw), height: px(u), background: fg, clipPath: 'polygon(0 0,100% 50%,0 100%)' });
+  if (ch === '◆') {                                   // diamond: skill / model mark, optionally sitting on a border line
+    if (cell.line) hline(cell.line);
+    const s = u * 0.3;
+    return void add({ left: px((cw - s) / 2), top: px((u - s) / 2), width: px(s), height: px(s), background: fg, transform: 'rotate(45deg)', boxShadow: glow(fg) });
+  }
+  if (ch === '●' || ch === '○') {
+    const s = u * 0.34, on = ch === '●';
+    return void add({ left: px((cw - s) / 2), top: px((u - s) / 2), width: px(s), height: px(s), borderRadius: '50%', boxSizing: 'border-box',
+      background: on ? fg : 'transparent', border: on ? 'none' : t + 'px solid ' + fg, boxShadow: on ? glow(fg) : 'none' });
+  }
+  if (BLK[ch] || cell.seg) {                          // LED segment: gap between cells, vertical band, unlit track
+    const gap = cell.seg ? k * 1.2 : 0, b = cell.band || [0, 1], H = (b[1] - b[0]) * u, T = b[0] * u, W = cw - gap;
+    const rect = (x0, y0, x1, y1, bg, sh) => add({ left: px(gap / 2 + x0 * W), top: px(T + y0 * H), width: px((x1 - x0) * W), height: px((y1 - y0) * H),
+      background: bg, boxShadow: sh, borderRadius: px(cell.seg ? 0.8 * k : 0) });
+    if (cell.ghost) rect(0, 0, 1, 1, cell.ghost, 'none');
+    if (BLK[ch]) { const [x0, y0, x1, y1] = BLK[ch]; rect(x0, y0, x1, y1, fg, glow(fg)); }
+    return;
+  }
+  if (cell.dots) {                                    // braille: 2 x 4 dots, each lit dot with its own colour
+    const s = 2.3 * k, lit = new Map(cell.dots.map(([x, y, c]) => [x + ',' + y, c]));
+    for (const [cx, cy] of BR) {
+      const c = lit.get(cx + ',' + cy); if (!c && !cell.ghost) continue;
+      add({ left: px(cw * (0.27 + 0.46 * cx) - s / 2), top: px(u * (0.125 + 0.25 * cy) - s / 2), width: px(s), height: px(s),
+        borderRadius: '50%', background: c || cell.ghost, boxShadow: c && cell.glow ? glow(c) : 'none' });
+    }
+    return;
+  }
+  d.textContent = ch; d.style.color = fg;
+}
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const tms = (s) => { const v = typeof s === 'string' ? Date.parse(s) : NaN; return Number.isFinite(v) ? v : null; };
+const turnsOf = (d) => (d && d.turn && Array.isArray(d.turn.turns) ? d.turn.turns.filter((x) => x && typeof x === 'object') : []);
+const inst = (d) => (d && d.live && Array.isArray(d.live.instances) && d.live.instances[0] && typeof d.live.instances[0] === 'object' ? d.live.instances[0] : null);
+/** horizontal LED bar: frac 0..1 (null = track only); every cell a segment with its unlit track */
+function lbar(g, x0, y, w, frac, fg, band, field) {
+  const fill = frac == null ? 0 : Math.max(frac > 0 ? 1 / 8 : 0, Math.min(1, frac)) * w;
+  for (let i = 0; i < w; i++) {
+    let ch = ' ';
+    if (i < Math.floor(fill)) ch = '█'; else if (i === Math.floor(fill)) ch = hblock(Math.round((fill - i) * 8));
+    g.set(x0 + i, y, ch, { fg, seg: true, band: band || [0.34, 0.66], ghost: K.ghost, field: ch !== ' ' ? field : undefined });
+  }
+}
+function spanOf(d) {
+  const a = tms(d && d.session && d.session.started_at), i = inst(d);
+  let b = tms(i && i.last_activity);
+  const via = b != null ? 'live.instances[].last_activity' : 'turn.turns[].started_at turn.turns[].duration_s';
+  if (b == null) for (const t of turnsOf(d)) { const s = tms(t.started_at); if (s != null) b = Math.max(b || 0, s + (isNum(t.duration_s) ? t.duration_s * 1000 : 0)); }
+  return a != null && b != null && b > a ? { a, b, fb: via } : null;
+}
+const pad2 = (n) => String(n).padStart(2, '0');
+const hhmm = (ms) => { const x = new Date(ms); return pad2(x.getHours()) + ':' + pad2(x.getMinutes()); };
+const hhmmss = (ms) => { const x = new Date(ms); return hhmm(ms) + ':' + pad2(x.getSeconds()); };
+const fmtTok = (n) => (!isNum(n) ? '–' : n >= 999500 ? (n / 1e6).toFixed(1) + 'M' : n >= 1000 ? Math.round(n / 1000) + 'k' : String(Math.round(n)));
+const fmtPct = (f) => (f == null ? '–' : f * 100 < 9.95 ? (f * 100).toFixed(1) + '%' : Math.round(f * 100) + '%');
+/** skills grouped by name, plus every start in time order */
+function skillData(d) {
+  const by = new Map(), starts = [];
+  for (const t of turnsOf(d)) for (const s of (Array.isArray(t.skills) ? t.skills : [])) {
+    if (!s || typeof s.name !== 'string' || !s.name) continue;
+    const e = by.get(s.name) || { name: s.name, count: 0, tokens: 0, last: null, turn: null };
+    e.count++;
+    e.tokens = e.tokens != null && isNum(s.tokens_in) && isNum(s.tokens_out) ? e.tokens + s.tokens_in + s.tokens_out : null;
+    const at = tms(s.time);
+    if (at != null && (e.last == null || at >= e.last)) { e.last = at; e.turn = isNum(t.number) ? t.number : null; }
+    if (at != null) starts.push({ name: s.name, at });
+    by.set(s.name, e);
+  }
+  const list = [...by.values()].sort((a, b) => b.count - a.count || (b.tokens || 0) - (a.tokens || 0) || a.name.localeCompare(b.name));
+  return { list, starts: starts.sort((a, b) => a.at - b.at) };
+}
+/** the session ruler IN a border line: user turns as notches, skill starts as diamonds */
+function ruler(g, y, x0, w, d, starts) {
+  const sp = spanOf(d); if (!sp) return;
+  const pos = (ms) => x0 + Math.round(Math.max(0, Math.min(1, (ms - sp.a) / (sp.b - sp.a))) * (w - 1));
+  for (const t of turnsOf(d)) { const s = tms(t.started_at); if (s == null) continue; const x = pos(s); const c = g.at(x, y); if (c && c.ch === '─') g.set(x, y, '┴', { fg: K.dim, field: 'turn.turns[].started_at' }); }
+  for (const s of (starts || [])) { const x = pos(s.at); const c = g.at(x, y); if (c && (c.ch === '─' || c.ch === '┴')) g.set(x, y, '◆', { fg: K.s1, line: K.frame, glow: true, field: F_TIME }); }
+}
+
+// aihud:not-recorded v1
+const notRecorded = (d, type, field) => !!(d && Array.isArray(d.not_delivered) && d.not_delivered.some((n) => typeof n === 'string' && n.startsWith(type + ':' + field + '_not_recorded_by_')));

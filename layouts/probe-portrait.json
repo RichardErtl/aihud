@@ -1,0 +1,8 @@
+{
+  "name": "probe portrait",
+  "orientation": "portrait",
+  "tiles": [
+    { "tile": "example-number", "col": 0, "row": 0 },
+    { "tile": "example-number", "col": 0, "row": 6 }
+  ]
+}

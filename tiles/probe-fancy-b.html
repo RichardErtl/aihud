@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>aihud tile probe · fancy-b</title>
+<style>
+  body { margin: 0; padding: 16px; background: #888; font: 12px system-ui, sans-serif; display: flex; gap: 16px; align-items: flex-start; }
+  .theme { padding: 12px; border-radius: 8px; background: var(--aihud-bg); color: var(--aihud-text); }
+  .theme h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--aihud-dim); }
+  .group { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-start; margin-bottom: 16px; }
+  .group.portrait { flex-direction: column; flex-wrap: nowrap; }
+  .cap { color: var(--aihud-faint); font-size: 11px; margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cell.too-big { outline: 2px solid red; }
+  .row { display: flex; gap: 16px; align-items: flex-start; }
+  .dark {
+    --aihud-bg: #0b0d10; --aihud-panel: #13161b; --aihud-line: #232830; --aihud-line-2: #1c2027;
+    --aihud-text: #e6e8eb; --aihud-dim: #8a929c; --aihud-faint: #4a525c;
+    --aihud-main: #cfd6df; --aihud-sub: #6b7580; --aihud-role: #7d8896;
+    --aihud-series-1: #8fb3ff; --aihud-series-2: #5d7fd6; --aihud-series-3: #3a5596;
+    --aihud-heat-0: #ffffff; --aihud-heat-30: #ffd21f; --aihud-heat-50: #ff8c1a; --aihud-heat-75: #e8301c; --aihud-heat-100: #a0001a;
+    --aihud-heat-text-0: #ffffff; --aihud-heat-text-30: #ffd21f; --aihud-heat-text-50: #ff8c1a; --aihud-heat-text-75: #e8301c; --aihud-heat-text-100: #a0001a;
+    --aihud-heat-rest: 0.13; --aihud-glow: 3px; --aihud-glow-core: 0.45; --aihud-glow-mid: 0.16; --aihud-glow-halo: 0.22;
+    --aihud-role-1: #c9b8ff; --aihud-role-2: #9d86f0; --aihud-role-3: #6f5bc4;
+  }
+  .light {
+    --aihud-bg: #eef0f3; --aihud-panel: #ffffff; --aihud-line: #e1e4e8; --aihud-line-2: #eceef1;
+    --aihud-text: #1a1d21; --aihud-dim: #5f6873; --aihud-faint: #a0a7b0;
+    --aihud-main: #3b4350; --aihud-sub: #9aa3ad; --aihud-role: #7d8896;
+    --aihud-series-1: #3d6fe0; --aihud-series-2: #6b8fe6; --aihud-series-3: #a9bff2;
+    --aihud-heat-0: #c9ced4; --aihud-heat-30: #e0a800; --aihud-heat-50: #f07800; --aihud-heat-75: #d8261a; --aihud-heat-100: #8b0016;
+    --aihud-heat-text-0: #7d8590; --aihud-heat-text-30: #a87d00; --aihud-heat-text-50: #d96500; --aihud-heat-text-75: #d8261a; --aihud-heat-text-100: #8b0016;
+    --aihud-heat-rest: 0.18; --aihud-glow: 0px; --aihud-glow-core: 0.38; --aihud-glow-mid: 0.12; --aihud-glow-halo: 0.12;
+    --aihud-role-1: #6d4fd1; --aihud-role-2: #9479e6; --aihud-role-3: #c2b2f2;
+  }
+  .dark, .light {
+    --aihud-font: system-ui, -apple-system, Segoe UI, sans-serif; --aihud-font-mono: ui-monospace, Consolas, monospace;
+    --aihud-radius: 6px; --aihud-radius-small: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="theme dark" id="dark"></div>
+<div class="theme light" id="light"></div>
+<script type="module">
+  // The 10 fancy-b tiles, dark and light side by side (header and tokens ship only as fancy-a, the
+  // fancy-b layouts use those). Opened on its own the page draws the empty state ({}); a driver calls window.probe(data, unit) with a reader data sheet (no numbers here).
+  const BLOCKS = ['context', 'top-three-subagents', 'time', 'subagents', 'skills'];
+  const mods = {};
+  for (const o of ['portrait', 'landscape']) {
+    for (const b of BLOCKS) mods[`${b}-fancy-b-${o}`] = await import(`./${b}-fancy-b-${o}.js`);
+  }
+
+  function probe(data, unit = 20, label = 'data') {
+    const found = { tiles: 0, tooBig: [], sizes: {} };
+    for (const theme of ['dark', 'light']) {
+      const root = document.getElementById(theme);
+      root.replaceChildren();
+      const title = document.createElement('h2');
+      title.textContent = `${theme} · unit ${unit} · ${label}`;
+      const row = document.createElement('div');
+      row.className = 'row';
+      root.append(title, row);
+      for (const o of ['portrait', 'landscape']) {
+        const group = document.createElement('div');
+        group.className = `group ${o}`;
+        row.append(group);
+        for (const b of BLOCKS) {
+          const name = `${b}-fancy-b-${o}`;
+          const { meta, render } = mods[name];
+          const [size] = meta.sizes;
+          const wrap = document.createElement('div');
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.tile = name;
+          cell.style.cssText = `width:${size.cols * unit}px;height:${size.rows * unit}px;overflow:hidden`;
+          render(cell, data, { ...size, unit });
+          const cap = document.createElement('div');
+          cap.className = 'cap';
+          wrap.append(cell, cap);
+          group.append(wrap);
+          const box = cell.firstElementChild.getBoundingClientRect();
+          // too big: content scrolls, or an SVG/child box leaves the tile box
+          const over = [cell.firstElementChild, ...cell.firstElementChild.querySelectorAll('svg, div')].map((e) => {
+            const r = e.getBoundingClientRect();
+            const css = getComputedStyle(e);
+            const clips = css.overflow !== 'visible';                  // only a clipping box can hide content
+            const cut = css.textOverflow === 'ellipsis';               // a truncated name is drawn that way on purpose
+            const why = [];
+            if (clips && e.scrollHeight - e.clientHeight > 1) why.push(`+${e.scrollHeight - e.clientHeight}px high`);
+            if (clips && !cut && e.scrollWidth - e.clientWidth > 1) why.push(`+${e.scrollWidth - e.clientWidth}px wide`);
+            if (r.bottom > box.bottom + 0.5 || r.right > box.right + 0.5 || r.top < box.top - 0.5 || r.left < box.left - 0.5) why.push('leaves the box');
+            return why.length ? `${e.tagName.toLowerCase()} ${why.join(' ')}` : '';
+          }).filter(Boolean);
+          if (over.length) { cell.classList.add('too-big'); found.tooBig.push(`${theme}:${name}: ${over.join(', ')}`); }
+          cap.textContent = `${name} · ${size.cols} × ${size.rows} · ${box.width} × ${box.height} px`;
+          found.sizes[name] = [box.width, box.height];
+          found.tiles++;
+        }
+      }
+    }
+    document.body.dataset.rendered = String(found.tiles);
+    window.__probe = found;
+    return found;
+  }
+  window.probe = probe;
+  probe({}, 20, 'empty {}');
+</script>
+</body>
+</html>

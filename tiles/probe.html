@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>aihud tile probe</title>
+<style>
+  body { margin: 0; padding: 16px; background: #888; font: 12px system-ui, sans-serif; display: flex; gap: 16px; }
+  .theme { padding: 12px; border-radius: 8px; background: var(--aihud-bg); color: var(--aihud-text); }
+  .theme p { margin: 0 0 8px; color: var(--aihud-dim); }
+  .cell { outline: 1px dashed var(--aihud-line); margin-bottom: 12px; }
+  .dark { --aihud-bg: #0b0d10; --aihud-panel: #13161b; --aihud-line: #232830; --aihud-text: #e6e8eb;
+          --aihud-dim: #8a929c; --aihud-faint: #4a525c; --aihud-radius: 6px;
+          --aihud-font: system-ui, -apple-system, Segoe UI, sans-serif; }
+  .light { --aihud-bg: #eef0f3; --aihud-panel: #ffffff; --aihud-line: #e1e4e8; --aihud-text: #1a1d21;
+           --aihud-dim: #5f6873; --aihud-faint: #a0a7b0; --aihud-radius: 6px;
+           --aihud-font: system-ui, -apple-system, Segoe UI, sans-serif; }
+</style>
+</head>
+<body>
+<div class="theme dark"><p>dark · unit 20</p><div class="cell" id="d1"></div><p>no live</p><div class="cell" id="d2"></div></div>
+<div class="theme light"><p>light · unit 22.5</p><div class="cell" id="l1"></div></div>
+<script type="module">
+  import { meta, render } from './example-number.js';
+  // Fixture data in the shape of CONTRACT.md "The data" (made up, not from a real session).
+  const data = {
+    version: '1.0',
+    live: { version: '1.6', as_of: '2026-09-30T12:00:00.000Z',
+      instances: [{ device: 'laptop', state: 'awake', context_percent: 42.3, context_window: 1000000 }] },
+    not_delivered: [],
+  };
+  const empty = { version: '1.0', not_delivered: ['live:device_comes_from_host'] };
+  const [size] = meta.sizes;
+  render(document.getElementById('d1'), data, { ...size, unit: 20 });
+  render(document.getElementById('d2'), empty, { ...size, unit: 20 });
+  render(document.getElementById('l1'), data, { ...size, unit: 22.5 });
+  document.body.dataset.rendered = String(document.querySelectorAll('.cell > div').length);
+</script>
+</body>
+</html>

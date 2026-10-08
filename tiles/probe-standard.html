@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>aihud standard probe</title>
+<style>
+  body { margin: 0; padding: 16px; background: #888; font: 12px system-ui, sans-serif; display: flex; gap: 16px; align-items: flex-start; }
+  body.stack { flex-direction: column; }
+  .theme { padding: 12px; border-radius: 8px; background: var(--aihud-bg); color: var(--aihud-text); font-family: var(--aihud-font); }
+  .theme > p { margin: 0 0 10px; color: var(--aihud-dim); }
+  .tiles { display: flex; gap: 12px; align-items: flex-start; }
+  .portrait .tiles { flex-direction: column; }
+  .cell { outline: 1px dashed var(--aihud-line); width: max-content; }
+  .cap { color: var(--aihud-faint); font-size: 10.5px; margin-top: 3px; white-space: nowrap; }
+  .cap.bad { color: var(--aihud-text); font-weight: 700; }
+</style>
+</head>
+<body>
+<script type="module">
+  // The 14 standard tiles, dark and light, drawn with the data the caller hands in:
+  //   probe({ data, hud, orientation, unit }) — data is a reader sheet (the screenshot script builds
+  //   it with the reader over reader/fixtures), hud the HUD's session list. Colours come from
+  //   contract.json, so this page carries no colour of its own for the tiles.
+  import C from './contract.json' with { type: 'json' };
+
+  const names = (o) => C.contentBlocks.map((b) => `${b}-standard-${o}`);
+  const mods = new Map();
+  for (const o of C.orientations) for (const n of names(o)) mods.set(n, await import(`./${n}.js`));
+
+  function themed(theme) {
+    const box = document.createElement('div');
+    box.className = `theme ${theme}`;
+    box.dataset.theme = theme;
+    for (const v of C.designVariables) box.style.setProperty(v.name, v[theme]);
+    return box;
+  }
+
+  window.probe = ({ data = {}, hud, orientation = 'portrait', unit = 20 } = {}) => {
+    document.body.className = orientation === 'landscape' ? 'stack' : '';
+    const sheet = hud ? { ...data, hud } : data;
+    const measured = [];
+    const themes = ['dark', 'light'].map((theme) => {
+      const box = themed(theme);
+      box.classList.add(orientation);
+      const label = document.createElement('p');
+      label.textContent = `${theme} · ${orientation} · unit ${unit}`;
+      const tiles = document.createElement('div');
+      tiles.className = 'tiles';
+      for (const n of names(orientation)) {
+        const { meta, render } = mods.get(n);
+        const [s] = meta.sizes;
+        const wrap = document.createElement('div');
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.tile = n;
+        render(cell, sheet, { cols: s.cols, rows: s.rows, unit });
+        const cap = document.createElement('div');
+        cap.className = 'cap';
+        wrap.append(cell, cap);
+        tiles.append(wrap);
+        measured.push({ theme, n, cell, cap, s });
+      }
+      box.append(label, tiles);
+      return box;
+    });
+    document.body.replaceChildren(...themes);
+    // measured after layout: the tile box, and how far any drawn element reaches past it (the box
+    // clips, so an overflow would be cut off silently); SVG heights listed against a shrink
+    const out = measured.map(({ theme, n, cell, cap, s }) => {
+      const box = cell.firstElementChild.getBoundingClientRect();
+      const parts = [...cell.firstElementChild.querySelectorAll('*')].map((e) => e.getBoundingClientRect()).filter((r) => r.width || r.height);
+      const reach = (f) => Math.max(0, ...parts.map(f));
+      const over = [reach((r) => r.bottom - box.bottom), reach((r) => r.right - box.right)].map((x) => Math.round(x * 10) / 10);
+      const svgs = [...cell.querySelectorAll('svg')].map((g) => +g.getBoundingClientRect().height.toFixed(1));
+      const fit = over[0] <= 1 && over[1] <= 1;
+      cap.textContent = `${n} · ${s.cols}×${s.rows} · ${+box.width.toFixed(1)}×${+box.height.toFixed(1)} px${fit ? '' : ` · OVER +${over[0]}h +${over[1]}w`}`;
+      cap.classList.toggle('bad', !fit);
+      return { theme, tile: n, cols: s.cols, rows: s.rows, width: +box.width.toFixed(1), height: +box.height.toFixed(1), over, svgs, fit };
+    });
+    document.body.dataset.rendered = String(out.length);
+    return out;
+  };
+  document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

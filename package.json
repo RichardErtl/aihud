@@ -1,0 +1,57 @@
+{
+  "name": "aihud",
+  "version": "0.1.0",
+  "description": "A narrow live heads-up display for Claude Code, Codex and Antigravity sessions, read straight from the local session transcripts.",
+  "author": {
+    "name": "Richard Ertl",
+    "url": "https://www.linkedin.com/in/richard-ertl-524b80208"
+  },
+  "homepage": "https://github.com/RichardErtl/aihud#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RichardErtl/aihud.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RichardErtl/aihud/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "codex",
+    "antigravity",
+    "hud",
+    "terminal",
+    "transcript",
+    "tiles"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "aihud": "bin/aihud.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "files": [
+    "bin",
+    "hud",
+    "composer",
+    "layouts",
+    "node",
+    "reader",
+    "tiles",
+    "window",
+    ".claude/skills",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md",
+    "PROVENANCE.md",
+    "!**/*.test.js",
+    "!reader/fixtures",
+    "!reader/leaky-sheet.js",
+    "!layouts/probe-*.json",
+    "!tiles/probe*.html"
+  ]
+}

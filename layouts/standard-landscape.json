@@ -1,0 +1,13 @@
+{
+  "name": "standard landscape",
+  "orientation": "landscape",
+  "tiles": [
+    { "tile": "header-standard-landscape", "col": 0, "row": 0 },
+    { "tile": "time-standard-landscape", "col": 0, "row": 2 },
+    { "tile": "context-backlight-landscape", "col": 8, "row": 0 },
+    { "tile": "top-three-subagents-standard-landscape", "col": 18, "row": 0 },
+    { "tile": "tokens-standard-landscape", "col": 25, "row": 0 },
+    { "tile": "subagents-standard-landscape", "col": 41, "row": 0 },
+    { "tile": "skills-standard-landscape", "col": 49, "row": 0 }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "minimal landscape",
+  "orientation": "landscape",
+  "tiles": [
+    { "tile": "header-minimal-landscape", "col": 0, "row": 0 },
+    { "tile": "time-minimal-landscape", "col": 0, "row": 2 },
+    { "tile": "context-minimal-landscape", "col": 10, "row": 0 },
+    { "tile": "top-three-subagents-minimal-landscape", "col": 17, "row": 0 },
+    { "tile": "tokens-minimal-landscape", "col": 23, "row": 0 },
+    { "tile": "subagents-minimal-landscape", "col": 33, "row": 0 },
+    { "tile": "skills-minimal-landscape", "col": 42, "row": 0 }
+  ]
+}

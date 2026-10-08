@@ -1,0 +1,13 @@
+{
+  "name": "fancy-b-landscape",
+  "orientation": "landscape",
+  "tiles": [
+    { "tile": "header-fancy-a-landscape", "col": 0, "row": 0 },
+    { "tile": "time-fancy-b-landscape", "col": 0, "row": 2 },
+    { "tile": "context-fancy-b-landscape", "col": 10, "row": 0 },
+    { "tile": "top-three-subagents-fancy-b-landscape", "col": 16, "row": 0 },
+    { "tile": "tokens-fancy-a-landscape", "col": 26, "row": 0 },
+    { "tile": "subagents-fancy-b-landscape", "col": 40, "row": 0 },
+    { "tile": "skills-fancy-b-landscape", "col": 54, "row": 0 }
+  ]
+}

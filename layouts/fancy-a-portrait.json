@@ -1,0 +1,13 @@
+{
+  "name": "fancy-a portrait",
+  "orientation": "portrait",
+  "tiles": [
+    { "tile": "header-fancy-a-portrait", "col": 0, "row": 0 },
+    { "tile": "context-fancy-a-portrait", "col": 0, "row": 2 },
+    { "tile": "top-three-subagents-fancy-a-portrait", "col": 0, "row": 9 },
+    { "tile": "time-fancy-a-portrait", "col": 0, "row": 13 },
+    { "tile": "tokens-fancy-a-portrait", "col": 0, "row": 18 },
+    { "tile": "subagents-fancy-a-portrait", "col": 0, "row": 25 },
+    { "tile": "skills-fancy-b-portrait", "col": 0, "row": 32 }
+  ]
+}

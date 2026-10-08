@@ -1,0 +1,13 @@
+{
+  "name": "minimal portrait",
+  "orientation": "portrait",
+  "tiles": [
+    { "tile": "header-minimal-portrait", "col": 0, "row": 0 },
+    { "tile": "context-minimal-portrait", "col": 0, "row": 2 },
+    { "tile": "top-three-subagents-minimal-portrait", "col": 0, "row": 9 },
+    { "tile": "time-minimal-portrait", "col": 0, "row": 14 },
+    { "tile": "tokens-minimal-portrait", "col": 0, "row": 17 },
+    { "tile": "subagents-minimal-portrait", "col": 0, "row": 24 },
+    { "tile": "skills-minimal-portrait", "col": 0, "row": 30 }
+  ]
+}

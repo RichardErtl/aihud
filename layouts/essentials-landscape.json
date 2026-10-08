@@ -1,0 +1,11 @@
+{
+  "name": "essentials landscape",
+  "orientation": "landscape",
+  "tiles": [
+    { "tile": "header-essentials-landscape", "col": 0, "row": 0 },
+    { "tile": "time-essentials-landscape", "col": 0, "row": 2 },
+    { "tile": "context-essentials-landscape", "col": 18, "row": 0 },
+    { "tile": "subagents-essentials-landscape", "col": 28, "row": 0 },
+    { "tile": "tokens-essentials-landscape", "col": 32, "row": 0 }
+  ]
+}

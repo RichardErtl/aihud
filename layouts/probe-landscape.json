@@ -1,0 +1,9 @@
+{
+  "name": "probe landscape",
+  "orientation": "landscape",
+  "tiles": [
+    { "tile": "example-number-landscape", "col": 0, "row": 0 },
+    { "tile": "example-number-landscape", "col": 8, "row": 0 },
+    { "tile": "example-number-landscape", "col": 16, "row": 0 }
+  ]
+}

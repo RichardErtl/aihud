@@ -1,0 +1,13 @@
+{
+  "name": "standard portrait",
+  "orientation": "portrait",
+  "tiles": [
+    { "tile": "header-standard-portrait", "col": 0, "row": 0 },
+    { "tile": "context-backlight-portrait", "col": 0, "row": 2 },
+    { "tile": "top-three-subagents-standard-portrait", "col": 0, "row": 8 },
+    { "tile": "time-standard-portrait", "col": 0, "row": 12 },
+    { "tile": "tokens-standard-portrait", "col": 0, "row": 15 },
+    { "tile": "subagents-standard-portrait", "col": 0, "row": 26 },
+    { "tile": "skills-standard-portrait", "col": 0, "row": 33 }
+  ]
+}

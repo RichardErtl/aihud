@@ -1,0 +1,194 @@
+/* The composer (design round 01.10). Every colour,
+   font and radius is a design variable of tiles/CONTRACT.md (defined in /hud/hud.css, loaded
+   first). Two derived roles, no new colour: accent = --aihud-series-1, refusal =
+   --aihud-heat-text-75. The composer has its own bar, not the window head — no shared sheet. */
+:root { --w-accent: var(--aihud-series-1); --w-refuse: var(--aihud-heat-text-75); --w-hover: color-mix(in srgb, var(--aihud-text) 4%, transparent); color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+html { overflow: hidden; scrollbar-width: auto; }
+html::-webkit-scrollbar { display: block; }
+body { font: 13.5px/1.45 var(--aihud-font); }
+
+#composer { display: flex; flex-direction: column; height: 100vh; }
+#composer.dragging, #composer.dragging * { cursor: grabbing !important; user-select: none; }
+#composer button { font: inherit; cursor: pointer; }
+#composer .link { color: var(--w-accent); text-decoration: none; cursor: pointer; }
+#composer .link:hover { text-decoration: underline; text-underline-offset: 3px; }
+#composer :focus-visible { outline: 2px solid var(--w-accent); outline-offset: 2px; }
+
+/* the bar: 82 px, the labelled name field leads (boxed, larger) */
+#composer .bar {
+  display: flex; align-items: center; gap: 22px; height: 82px; padding: 0 18px; flex: none;
+  border-bottom: 1px solid var(--aihud-line); background: var(--aihud-panel);
+}
+#composer .back { color: var(--aihud-dim); text-decoration: none; white-space: nowrap; }
+#composer .back:hover { color: var(--aihud-text); }
+#composer .c-name { display: flex; flex-direction: column; gap: 3px; min-width: 280px; }
+#composer .c-name label { font-size: 11.5px; color: var(--aihud-dim); letter-spacing: .04em; text-transform: uppercase; }
+#composer .c-name input {
+  font: 600 16px var(--aihud-font); color: var(--aihud-text); background: var(--aihud-bg); border: 1px solid var(--aihud-faint);
+  border-radius: var(--aihud-radius); padding: 6px 10px; outline: none; width: 280px; box-sizing: border-box;
+}
+#composer .c-name input::placeholder { color: var(--aihud-faint); font-weight: 400; }
+#composer .c-name input:hover { border-color: var(--aihud-dim); }
+#composer .c-name input:focus { border-color: var(--w-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--w-accent) 30%, transparent); }
+#composer .c-name input.invalid {
+  border: 2px solid var(--w-accent); padding: 5px 9px; background: color-mix(in srgb, var(--w-accent) 14%, var(--aihud-bg));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--w-accent) 38%, transparent);
+}
+#composer .slug { font: 11.5px var(--aihud-font-mono); color: var(--aihud-faint); }
+#composer .slug i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--aihud-heat-50); margin-right: 5px; vertical-align: 1px; }
+#composer .slug.clean i { display: none; }
+#composer .seg { display: flex; gap: 14px; }
+#composer .seg button { color: var(--aihud-dim); background: none; border: 0; padding: 0 0 1px; border-bottom: 1.5px solid transparent; }
+#composer .seg button.on { color: var(--aihud-text); border-bottom-color: var(--w-accent); }
+#composer .c-field { display: flex; align-items: center; gap: 6px; color: var(--aihud-dim); white-space: nowrap; }
+#composer .c-field input[type="number"] {
+  width: 34px; font: 13px var(--aihud-font-mono); color: var(--aihud-text); background: none; border: 0; border-bottom: 1px solid var(--aihud-line);
+  text-align: center; padding: 1px 0; -moz-appearance: textfield; appearance: textfield;
+}
+#composer .c-field input[type="number"]::-webkit-inner-spin-button { display: none; }
+#composer .c-field input:disabled { color: var(--aihud-faint); border-bottom-style: dotted; }
+#composer .c-field input[type="range"] { width: 110px; accent-color: var(--w-accent); }
+#composer .readout { font: 12px var(--aihud-font-mono); color: var(--aihud-faint); }
+#composer .c-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+#composer .hud-link[hidden] { display: none; }
+#composer .quiet-button { color: var(--aihud-dim); background: none; border: 0; padding: 0; }
+#composer .quiet-button:hover { color: var(--aihud-text); }
+#composer .save { font-weight: 600; color: var(--aihud-bg); background: var(--w-accent); border: 0; border-radius: var(--aihud-radius); padding: 7px 18px; }
+#composer .save:hover { filter: brightness(1.08); }
+
+/* three columns: panel 252 px · stage · guide 318 px */
+#composer .work { flex: 1; display: grid; grid-template-columns: 252px minmax(0, 1fr) auto; min-height: 0; }
+
+/* the panel with a live mini preview of every tile */
+#composer .panel { border-right: 1px solid var(--aihud-line); background: var(--aihud-panel); overflow: auto; padding: 14px 14px 20px; }
+#composer .search {
+  box-sizing: border-box; width: 100%; font: 13px var(--aihud-font); color: var(--aihud-text); background: var(--aihud-bg); outline: none;
+  border: 1px solid var(--aihud-line); border-radius: var(--aihud-radius); padding: 6px 9px;
+}
+#composer .search:focus { border-color: var(--w-accent); }
+#composer .chips { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 10px 0 4px; font-size: 12.5px; }
+#composer .chips button { color: var(--aihud-dim); background: none; border: 0; padding: 0; border-bottom: 1.5px solid transparent; }
+#composer .chips button.on { color: var(--aihud-text); border-bottom-color: var(--w-accent); }
+#composer .tiles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: flex-start; }
+#composer .tiles .group {
+  flex: 1 0 100%; display: flex; justify-content: space-between; margin: 12px 0 2px;
+  color: var(--aihud-faint); font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em;
+}
+#composer .tiles .group.own { color: var(--w-accent); }
+#composer .tiles .empty { color: var(--aihud-faint); }
+#composer .tiles .tile {
+  display: flex; flex-direction: column; gap: 5px; padding: 5px; border-radius: var(--aihud-radius);
+  cursor: grab; user-select: none; touch-action: none; max-width: 100%; box-sizing: border-box;
+}
+#composer .tiles .tile:hover { background: var(--w-hover); }
+#composer .tiles .preview {
+  position: relative; overflow: hidden; border-radius: var(--aihud-radius-small); background: var(--aihud-bg);
+  box-shadow: 0 0 0 1px var(--aihud-line);
+}
+#composer .tiles .tile:hover .preview { box-shadow: 0 0 0 1px var(--aihud-faint); }
+#composer .tiles .tile.own .preview { box-shadow: 0 0 0 1px var(--w-accent); }
+#composer .tiles .preview .inner { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; overflow: hidden; color: var(--aihud-faint); font-size: 12px; }
+#composer .p-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; min-width: 0; }
+#composer .p-name { color: var(--aihud-dim); font-size: 12.5px; line-height: 1.25; overflow: hidden; min-width: 0; }
+#composer .p-name small { display: block; font: 11px var(--aihud-font-mono); color: var(--aihud-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#composer .tile:hover .p-name, #composer .tile.own .p-name { color: var(--aihud-text); }
+#composer .p-size { font: 11.5px var(--aihud-font-mono); color: var(--aihud-faint); }
+
+/* the stage */
+#composer .stage { overflow: auto; padding: 18px 28px 30px; position: relative; }
+#composer .c-info { display: flex; gap: 16px; font: 12px var(--aihud-font-mono); color: var(--aihud-faint); margin: 0 0 6px; }
+#composer .c-info b { color: var(--aihud-dim); font-weight: 500; }
+#composer .status { min-height: 1.4em; margin: 0 0 24px; color: var(--aihud-dim); font: 12px var(--aihud-font-mono); }
+#composer .grid {
+  position: relative; box-sizing: content-box; background-color: var(--aihud-bg); box-shadow: 0 0 0 1px var(--aihud-line);
+  background-image: linear-gradient(to right, var(--aihud-line-2) 1px, transparent 1px), linear-gradient(to bottom, var(--aihud-line-2) 1px, transparent 1px);
+}
+#composer .floor { position: absolute; top: -8px; bottom: -8px; width: 0; border-left: 1px dashed var(--aihud-faint); pointer-events: none; }
+#composer .floor[hidden] { display: none; }
+#composer .floor span { position: absolute; top: -16px; left: -40px; white-space: nowrap; font: 11px var(--aihud-font-mono); color: var(--aihud-faint); }
+#composer .cell {
+  position: absolute; box-sizing: border-box; overflow: hidden; cursor: grab; touch-action: none; user-select: none;
+  background: var(--aihud-panel); border-radius: var(--aihud-radius-small); box-shadow: 0 0 0 1px var(--aihud-line) inset;
+}
+#composer .cell:hover { box-shadow: 0 0 0 1px var(--aihud-dim) inset; }
+#composer .cell.hit { box-shadow: 0 0 0 1.5px var(--w-refuse) inset; }
+#composer .cell.source { opacity: .35; }
+#composer .cell .body { width: 100%; height: 100%; overflow: hidden; pointer-events: none; color: var(--aihud-faint); }
+#composer .cell .grip, #composer .cell .remove {
+  position: absolute; top: 3px; opacity: 0; transition: opacity .15s; font-size: 12px; line-height: 1; color: var(--aihud-dim);
+  background: var(--aihud-panel); border-radius: var(--aihud-radius-small); padding: 2px 3px;
+}
+#composer .cell .grip { left: 3px; letter-spacing: -1px; pointer-events: none; }
+#composer .cell .remove { right: 3px; cursor: pointer; }
+#composer .cell .remove:hover { color: var(--w-refuse); }
+#composer .cell .label {
+  position: absolute; right: 0; bottom: 0; padding: 0 3px; font: 10px var(--aihud-font-mono); pointer-events: none;
+  color: var(--aihud-faint); background: var(--aihud-panel); opacity: 0; transition: opacity .15s;
+}
+#composer .cell:hover .grip, #composer .cell:hover .remove, #composer .cell:hover .label { opacity: 1; }
+#composer.dragging .cell .grip, #composer.dragging .cell .remove, #composer.dragging .cell .label { opacity: 0; }
+#composer .ghost {
+  position: absolute; box-sizing: border-box; pointer-events: none; z-index: 5; border-radius: var(--aihud-radius-small);
+  border: 1.5px solid var(--w-accent); background: color-mix(in srgb, var(--w-accent) 12%, transparent); transition: left .06s, top .06s;
+}
+#composer .ghost[hidden] { display: none; }
+#composer .ghost.refused {
+  border: 1.5px dashed var(--w-refuse);
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--w-refuse) 16%, transparent) 0 5px, transparent 5px 10px);
+}
+#composer .ghost .why {
+  position: absolute; left: -1px; top: calc(100% + 5px); white-space: nowrap; font: 12px var(--aihud-font); color: var(--aihud-bg);
+  background: var(--w-accent); border-radius: var(--aihud-radius-small); padding: 2px 7px;
+}
+#composer .ghost.refused .why { background: var(--w-refuse); }
+
+/* the guide drawer: open in portrait, folded to a 38 px rail in landscape */
+#composer .guide { width: 318px; box-sizing: border-box; border-left: 1px solid var(--aihud-line); background: var(--aihud-panel); overflow: auto; padding: 14px 18px 24px; transition: width .2s; }
+#composer .guide.folded { width: 38px; padding: 14px 0; overflow: hidden; }
+#composer .g-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 12px; }
+#composer .g-head b { font-size: 14px; font-weight: 600; }
+#composer .g-head .fold { color: var(--aihud-faint); background: none; border: 0; font-size: 14px; padding: 0 2px; }
+#composer .g-head .fold:hover { color: var(--aihud-text); }
+#composer .guide.folded .g-head {
+  writing-mode: vertical-rl; transform: rotate(180deg); margin: 0 auto; align-items: center; gap: 10px; justify-content: flex-end; height: 100%;
+}
+#composer .guide.folded .g-body { display: none; }
+#composer .step { display: grid; grid-template-columns: 18px 1fr; gap: 8px; margin: 0 0 14px; color: var(--aihud-dim); font-size: 13px; }
+#composer .step > span { font: 12px var(--aihud-font-mono); color: var(--aihud-faint); padding-top: 1px; }
+#composer .step p { margin: 0 0 6px; }
+#composer .step b { color: var(--aihud-text); font-weight: 500; }
+#composer .command {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0 6px; padding: 5px 6px 5px 9px;
+  background: var(--aihud-bg); border: 1px solid var(--aihud-line); border-radius: var(--aihud-radius);
+  font: 12.5px var(--aihud-font-mono); color: var(--aihud-text);
+}
+#composer .command .copy { font: 12px var(--aihud-font); color: var(--aihud-faint); background: none; border: 0; padding: 0; }
+#composer .command .copy:hover, #composer .command .copy.ok { color: var(--w-accent); }
+#composer .guide code { font: 12px var(--aihud-font-mono); color: var(--aihud-text); }
+#composer details.format { border-top: 1px solid var(--aihud-line); padding-top: 10px; margin-top: 4px; color: var(--aihud-dim); font-size: 13px; }
+#composer details.format summary { cursor: pointer; color: var(--aihud-dim); }
+#composer details.format pre {
+  margin: 8px 0; font: 11.5px/1.5 var(--aihud-font-mono); color: var(--aihud-dim); background: var(--aihud-bg);
+  border-radius: var(--aihud-radius); padding: 8px 10px; overflow-x: auto; white-space: pre-wrap;
+}
+
+/* The grid's corner handle, the Layouts list, the delete button */
+#composer .grid .resize {
+  position: absolute; right: -9px; bottom: -9px; width: 16px; height: 16px; box-sizing: border-box; z-index: 6; touch-action: none;
+  border-right: 3px solid var(--w-accent); border-bottom: 3px solid var(--w-accent); border-radius: 0 0 var(--aihud-radius-small) 0;
+  cursor: nwse-resize; background: color-mix(in srgb, var(--w-accent) 12%, transparent);
+}
+#composer .grid .resize:hover, #composer.resizing .grid .resize { background: color-mix(in srgb, var(--w-accent) 35%, transparent); }
+#composer.resizing, #composer.resizing * { cursor: nwse-resize !important; user-select: none; }
+#composer .layouts { margin: 0 0 14px; }
+#composer .layouts summary { cursor: pointer; color: var(--aihud-faint); font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; margin: 0 0 4px; }
+#composer .layout-list { list-style: none; margin: 0; padding: 0; max-height: 190px; overflow: auto; }
+#composer .layout-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 3px 6px; border-radius: var(--aihud-radius-small); cursor: pointer; color: var(--aihud-dim); }
+#composer .layout-list li:hover { background: var(--w-hover); color: var(--aihud-text); }
+#composer .layout-list li.on { color: var(--aihud-text); box-shadow: 0 0 0 1px var(--w-accent) inset; }
+#composer .layout-list li.empty { cursor: default; color: var(--aihud-faint); }
+#composer .layout-list .l-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#composer .layout-list small { font: 11px var(--aihud-font-mono); color: var(--aihud-faint); white-space: nowrap; }
+#composer .delete[hidden] { display: none; }
+#composer .delete:hover { color: var(--w-refuse); }

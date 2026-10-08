@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>aihud tile probe · fancy-a</title>
+<style>
+  body { margin: 0; padding: 16px; background: #888; font: 12px system-ui, sans-serif; display: flex; gap: 16px; align-items: flex-start; }
+  .theme { padding: 12px; border-radius: 8px; background: var(--aihud-bg); color: var(--aihud-text); }
+  .theme h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--aihud-dim); }
+  .row { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-start; margin-bottom: 14px; }
+  .col { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .cap { color: var(--aihud-faint); font-size: 10px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .cap.bad { color: #e8301c; font-weight: 600; }
+  .cell { width: max-content; }
+</style>
+</head>
+<body>
+<script type="module">
+  // Probe page (not a tile): all 12 fancy-a tiles, dark and light side by side, at one unit.
+  // Serve the aihud folder over http and call `probe(data, unit)`; without a call it draws the
+  // empty state ({}). `window.__fit` lists every tile whose drawing leaves its box.
+  const NAMES = ['header', 'context', 'top-three-subagents', 'time', 'tokens', 'subagents'];   // fancy-a has no skills tile (skills-fancy-b is its twin)
+  const contract = await (await fetch('./contract.json')).json();
+  const mods = {};
+  for (const b of NAMES) for (const o of ['portrait', 'landscape']) mods[`${b}-fancy-a-${o}`] = await import(`./${b}-fancy-a-${o}.js`);
+  const vars = (t) => contract.designVariables.map((d) => `${d.name}:${d[t]}`).join(';');
+
+  function fit(box) {
+    const r = box.getBoundingClientRect();
+    const out = [];
+    for (const n of box.querySelectorAll('*')) {
+      const b = n.getBoundingClientRect();
+      if (!b.width && !b.height) continue;
+      const over = Math.max(r.left - b.left, b.right - r.right, r.top - b.top, b.bottom - r.bottom);
+      if (over > 0.5) out.push(`${n.tagName.toLowerCase()} +${over.toFixed(1)}px`);
+    }
+    if (box.scrollHeight > box.clientHeight + 1) out.push(`scroll +${box.scrollHeight - box.clientHeight}px high`);
+    if (box.scrollWidth > box.clientWidth + 1) out.push(`scroll +${box.scrollWidth - box.clientWidth}px wide`);
+    return out;
+  }
+
+  window.probe = (data = {}, unit = 20) => {
+    document.body.replaceChildren();
+    const found = [];
+    for (const theme of ['dark', 'light']) {
+      const t = document.createElement('div');
+      t.className = 'theme';
+      t.dataset.theme = theme;
+      t.style.cssText = vars(theme);
+      const head = document.createElement('h2');
+      head.textContent = `${theme} · unit ${unit}`;
+      t.append(head);
+      for (const o of ['portrait', 'landscape']) {
+        const group = document.createElement('div');
+        group.className = o === 'portrait' ? 'col' : 'row';
+        for (const b of NAMES) {
+          const name = `${b}-fancy-a-${o}`;
+          const [s] = mods[name].meta.sizes;
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          const el = document.createElement('div');
+          el.dataset.tile = name;
+          const cap = document.createElement('div');
+          cap.className = 'cap';
+          cell.append(el, cap);
+          group.append(cell);
+          mods[name].render(el, data, { ...s, unit });
+          cap.textContent = `${name} · ${s.cols}×${s.rows}`;
+          cell.dataset.size = `${s.cols * unit}x${s.rows * unit}`;
+        }
+        t.append(group);
+      }
+      document.body.append(t);
+    }
+    for (const el of document.querySelectorAll('[data-tile]')) {
+      const box = el.firstElementChild;
+      const bad = fit(box);
+      const b = box.getBoundingClientRect();
+      const cap = el.nextElementSibling;
+      cap.textContent += ` · ${b.width} × ${b.height} px${bad.length ? ` · LEAVES BOX: ${bad.join(', ')}` : ''}`;
+      if (bad.length) { cap.classList.add('bad'); found.push(`${el.closest('.theme').dataset.theme}:${el.dataset.tile} ${bad.join(', ')}`); }
+    }
+    window.__fit = { tiles: document.querySelectorAll('[data-tile]').length, leaving: found };
+    return window.__fit;
+  };
+  window.probe();
+  document.body.dataset.ready = '1';
+</script>
+</body>
+</html>
