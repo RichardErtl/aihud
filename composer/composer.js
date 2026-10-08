@@ -297,6 +297,13 @@ export function settingsUrl(base = '') {
   return `${base}/window#settings`;
 }
 
+/** The tiles folder the guide names: the node's real aihud home (GET / → paths.home), else the default. */
+export function tilesDir(home) {
+  if (!home) return '~/.aihud/tiles/';
+  const sep = home.includes('\\') ? '\\' : '/';
+  return `${home.replace(/[\\/]+$/, '')}${sep}tiles${sep}`;
+}
+
 /** What the page tells a user about Claude Code and the layout file — text, nothing to install. */
 export const INSTRUCTIONS = `Build a new tile with Claude Code
 
@@ -312,8 +319,8 @@ export const INSTRUCTIONS = `Build a new tile with Claude Code
    One full tile that holds everything you want to see
    is built the same way.
 3. The tile lands in ~/.aihud/tiles/<name>.js (or in
-   AIHUD_HOME/tiles). Reload this page: your own tiles
-   are listed first.
+   tiles/ of your AIHUD_HOME or --home). Reload this
+   page: your own tiles are listed first.
 
 What a layout looks like
 
@@ -488,7 +495,7 @@ export function boot(win, { base = '', importModule = (url) => import(url) } = {
         p('Paste the output into Claude Code — or let Claude Code run it. With the skill installed, ', el('code', null, '/new-tile'), ' does the same:'),
         command('npx aihud install-skill')),
       step(2, p('Tell Claude Code what the tile should show. It picks from the values in the ', catalogLink, ' — you decide. One ', el('b', null, 'full tile'), ' with everything you want is built the same way.')),
-      step(3, p('The tile lands in ', el('code', null, '~/.aihud/tiles/'), ' and shows up here first, under Your tiles.')),
+      step(3, p('The tile lands in ', el('code', null, tilesDir(state.home)), ' and shows up here first, under Your tiles.')),
       format,
     );
     guide.className = state.guideOpen ? 'guide' : 'guide folded';
@@ -914,6 +921,7 @@ export function boot(win, { base = '', importModule = (url) => import(url) } = {
   run(async () => {
     const settings = await get('/settings');
     state.unitMax = settings.unit_max;
+    try { state.home = (await get('/')).paths.home; drawGuide(); } catch { /* the guide keeps ~/.aihud/tiles/ */ }
     const light = win.matchMedia && win.matchMedia('(prefers-color-scheme: light)').matches;
     const theme = settings.theme === 'light' || settings.theme === 'dark' ? settings.theme : light ? 'light' : 'dark';
     const html = doc.documentElement;

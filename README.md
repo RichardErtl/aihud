@@ -123,7 +123,9 @@ Claude Code can write a tile for you:
   `/new-tile` works in every project. (Claude Code does not load skills from inside an npm
   package, hence the copy. It overwrites an existing copy only with `--force`.)
 
-Your tiles live in `~/.aihud/tiles/` and show up first in the Composer.
+Your tiles live in `~/.aihud/tiles/` and show up first in the Composer. To see a new tile, run
+`npx aihud check`, then `npx aihud add-tile <id>`, and reload the HUD page: portrait shows it at the
+very top, landscape at the right end; the Composer lists it first under "Your tiles".
 
 **Place and check.**
 

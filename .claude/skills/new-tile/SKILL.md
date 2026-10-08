@@ -10,11 +10,13 @@ the aihud strip. The user decides what it shows and how; you build it after the 
 
 ## 1. Get the contract
 
-Run `npx aihud new-tile`. It prints three things: the tile contract (render signature, `meta`,
-sizes, design variables, rules), the value list (every number the reader delivers, with meaning,
-unit and whether it is exact or estimated), and these instructions. Read all of it before you
-write code. If aihud is installed locally, the same files are `tiles/CONTRACT.md` and
-`tiles/contract.json` inside the package.
+Run `npx aihud new-tile`: its output is long (about 900 lines), so never cut it with `head` or
+`tail` — if your tool truncates it, Read the full contract as a file instead:
+`node_modules/aihud/tiles/CONTRACT.md` when aihud is installed (`tiles/CONTRACT.md` in the aihud
+repo), with the value list in `tiles/contract.json` beside it. The output holds three things: the
+tile contract (render signature, `meta`, sizes, design variables, rules), the value list (every
+number the reader delivers, with meaning, unit and whether it is exact or estimated), and these
+instructions. Read all of it before you write code.
 
 ## 2. Ask the user
 
@@ -65,10 +67,14 @@ that does either of the following, stop, say it plainly, and let the user decide
 If the user says yes, write it and name the call or import in a comment at the top of the file.
 If the user says no, find a way without it or leave the value out.
 
-## 5. Finish
+## 5. Check, place, look
 
-Tell the user the file path and the tile's `meta`. aihud lists the user's own tiles first; the
-aihud Composer places them.
+1. `npx aihud check` — validates the user's tiles and layouts; exit 0 and `ok` mean clean, every
+   problem is one line.
+2. `npx aihud add-tile <id>` — places the tile in the active layout (it prints how to undo).
+3. Tell the user the file path, the tile's `meta`, and how to see it: reload the HUD page — the
+   tile sits at the very top of the portrait layout (at the right end of the landscape one); in
+   the Composer (`http://localhost:4747/composer`) it is listed first under "Your tiles".
 
 ## Where this skill has to live
 

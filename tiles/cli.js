@@ -39,10 +39,11 @@ export function valueList(contract) {
 export function newTileText({ home = homedir(), aihud = resolveHome(null, home) } = {}) {
   const contract = JSON.parse(read(join(HERE, 'contract.json')));
   const skill = skillFor(read(join(SKILL_SOURCE, 'SKILL.md')), aihud, home).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
-  return [
+  const head = [
     `aihud tile contract ${contract.contractVersion} - reader ${contract.readerVersion} (${contract.readerMeasuredAgainst})`,
     `Write your tile to: ${join(aihud, 'tiles')}`,
-    '',
+  ];
+  const body = [
     '=== INSTRUCTIONS ===',
     skill.trim(),
     '',
@@ -53,6 +54,10 @@ export function newTileText({ home = homedir(), aihud = resolveHome(null, home) 
     valueList(contract),
     '',
   ].join('\n');
+  const lines = head.length + 2 + body.split('\n').length - 1;   // as `wc -l` counts them
+  return [...head,
+    `This output is long (${lines} lines): do not cut it with head or tail. The full contract is also the file ${join(HERE, 'CONTRACT.md')} (value list: ${join(HERE, 'contract.json')}).`,
+    '', body].join('\n');
 }
 
 /**
@@ -72,7 +77,8 @@ export function installSkill({ home = homedir(), aihud = resolveHome(null, home)
   return { target, copied, refused: false };
 }
 
-const USAGE = 'usage: aihud new-tile | aihud install-skill [--force] [--home <dir>]';
+const USAGE = 'usage: aihud new-tile [--home <dir>] | aihud install-skill [--force] [--home <dir>]\n'
+  + '  install-skill always copies the skill to ~/.claude/skills/new-tile/; --home only changes the tiles folder the skill names';
 
 /** Entry from bin/aihud.js. Returns the exit code. */
 export function main(args, { home = homedir(), write = (s) => process.stdout.write(s) } = {}) {

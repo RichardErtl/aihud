@@ -165,7 +165,7 @@ body { font: 13.5px/1.45 var(--aihud-font); }
 }
 #composer .command .copy { font: 12px var(--aihud-font); color: var(--aihud-faint); background: none; border: 0; padding: 0; }
 #composer .command .copy:hover, #composer .command .copy.ok { color: var(--w-accent); }
-#composer .guide code { font: 12px var(--aihud-font-mono); color: var(--aihud-text); }
+#composer .guide code { font: 12px var(--aihud-font-mono); color: var(--aihud-text); overflow-wrap: anywhere; }
 #composer details.format { border-top: 1px solid var(--aihud-line); padding-top: 10px; margin-top: 4px; color: var(--aihud-dim); font-size: 13px; }
 #composer details.format summary { cursor: pointer; color: var(--aihud-dim); }
 #composer details.format pre {

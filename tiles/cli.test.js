@@ -52,6 +52,9 @@ test('new-tile default output is unchanged (~/.aihud/tiles kept in the skill tex
   assert.equal(code, 0);
   assert.ok(out.includes(`Write your tile to: ${join(homedir(), '.aihud', 'tiles')}`));
   assert.ok(skillPart(out).includes('~/.aihud/tiles'));
+  const lines = out.split('\n');
+  assert.ok(lines[2].startsWith(`This output is long (${lines.length - 1} lines): do not cut it`) && lines[2].includes('CONTRACT.md'), 'F2: says its length, names the file');
+  assert.ok(skillPart(out).includes('`npx aihud check`') && skillPart(out).includes('reload the HUD page'), 'F5: check step and the way to see the tile');
 });
 
 test('install-skill --home X writes a SKILL.md naming X/tiles; source untouched', () => {
@@ -86,4 +89,5 @@ test('unknown arguments exit 2', () => {
   assert.equal(run(['install-skill', '--home']).code, 2);
   assert.equal(run(['install-skill', '--home', '--force']).code, 2, '--force is no home');
   assert.equal(run(['new-tile', '--home', '']).code, 2, 'an empty home is no home');
+  assert.match(run(['install-skill', '--help']).out, /always copies the skill to ~\/\.claude\/skills\/new-tile\/; --home only changes the tiles folder/, 'F7');
 });

@@ -34,7 +34,7 @@ export const HELP = `usage:
   aihud add-tile <id> [--orientation portrait|landscape|both] [--home <dir>]
       place a tile in the active portrait and/or landscape layout (a shipped layout is copied first)
   aihud install-skill [--force] [--home <dir>]
-      copy the /new-tile skill to ~/.claude/skills/new-tile/
+      copy the /new-tile skill to ~/.claude/skills/new-tile/ (always there; --home only changes the tiles folder it names)
 
   --projects   transcript folder (default ~/.claude/projects, env AIHUD_PROJECTS)
   --home       aihud folder for settings, sidecars, own tiles and layouts (default ~/.aihud, env AIHUD_HOME)

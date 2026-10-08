@@ -10,7 +10,7 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   LAYOUT, FLOOR_INNER_PX, FORM_MAX, gridForm, panelTiles, checkPlacement, formFits, layoutBody, nameSlug,
-  cellFromPoint, composerUnit, saveLayout, INSTRUCTIONS, CONTENT_BLOCKS, STYLES, FAMILIES, FAMILY_NAMES, refusalText, panelGroups, previewScale, PREVIEW,
+  cellFromPoint, composerUnit, saveLayout, INSTRUCTIONS, tilesDir, CONTENT_BLOCKS, STYLES, FAMILIES, FAMILY_NAMES, refusalText, panelGroups, previewScale, PREVIEW,
 } from './composer.js';
 import { unitFor } from '../hud/hud.js';
 import { createNode } from '../node/server.js';
@@ -258,6 +258,7 @@ test('the instructions for Claude Code are text: the new-tile command, the layou
   assert.match(INSTRUCTIONS, /\{ "tile": "[a-z-]+", "col": 0, "row": 0 \}/);
   assert.match(INSTRUCTIONS, /\/hud\?layout=/);
   assert.doesNotMatch(INSTRUCTIONS, /new-layout|layout skill/i);
+  assert.deepEqual([tilesDir(null), tilesDir('/h/aihud/')], ['~/.aihud/tiles/', '/h/aihud/tiles/'], 'F6: the guide names the real aihud home');
 });
 
 // ── routes and the save path against a real node ───────────────────────────
