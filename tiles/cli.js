@@ -80,8 +80,18 @@ export function installSkill({ home = homedir(), aihud = resolveHome(null, home)
 const USAGE = 'usage: aihud new-tile [--home <dir>] | aihud install-skill [--force] [--home <dir>]\n'
   + '  install-skill always copies the skill to ~/.claude/skills/new-tile/; --home only changes the tiles folder the skill names';
 
+let pipeGuard = false;
+// a reader that closes early (`| head`) ends the command quietly instead of an EPIPE stack trace
+function stdoutWrite(s) {
+  if (!pipeGuard) {
+    pipeGuard = true;
+    process.stdout.on('error', (e) => { if (e.code === 'EPIPE') process.exit(0); throw e; });
+  }
+  return process.stdout.write(s);
+}
+
 /** Entry from bin/aihud.js. Returns the exit code. */
-export function main(args, { home = homedir(), write = (s) => process.stdout.write(s) } = {}) {
+export function main(args, { home = homedir(), write = stdoutWrite } = {}) {
   const [command, ...rest] = args;
   let homeOpt = null;
   let force = false;
@@ -91,6 +101,7 @@ export function main(args, { home = homedir(), write = (s) => process.stdout.wri
     else if (rest[i] === '--force' && command === 'install-skill') force = true;
     else unknown.push(rest[i]);
   }
+  if (rest.includes('--help') || rest.includes('-h')) { write(`${USAGE}\n`); return 0; }
   const aihud = resolveHome(homeOpt, home);
   if (unknown.length) { write(`unknown argument: ${unknown.join(' ')}\n${USAGE}\n`); return 2; }
   if (command === 'new-tile') { write(newTileText({ home, aihud })); return 0; }

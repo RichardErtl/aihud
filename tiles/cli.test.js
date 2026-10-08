@@ -3,7 +3,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { main, SKILL_SOURCE } from './cli.js';
 
 const run = (args, opts = {}) => {
@@ -90,4 +92,26 @@ test('unknown arguments exit 2', () => {
   assert.equal(run(['install-skill', '--home', '--force']).code, 2, '--force is no home');
   assert.equal(run(['new-tile', '--home', '']).code, 2, 'an empty home is no home');
   assert.match(run(['install-skill', '--help']).out, /always copies the skill to ~\/\.claude\/skills\/new-tile\/; --home only changes the tiles folder/, 'F7');
+});
+
+test('--help prints usage, exit 0', () => {
+  for (const cmd of ['new-tile', 'install-skill']) {
+    for (const flag of ['--help', '-h']) {
+      const r = run([cmd, flag]);
+      assert.equal(r.code, 0, `${cmd} ${flag}`);
+      assert.ok(r.out.startsWith('usage: aihud new-tile'));
+      assert.ok(!r.out.includes('unknown argument'));
+    }
+  }
+});
+
+test('a closed stdout pipe (| head) ends quietly: exit 0, no EPIPE', async () => {
+  const bin = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'aihud.js');
+  const child = spawn(process.execPath, [bin, 'new-tile'], { stdio: ['ignore', 'pipe', 'pipe'] });
+  let err = '';
+  child.stderr.on('data', (d) => { err += d; });
+  child.stdout.once('data', () => child.stdout.destroy());
+  const code = await new Promise((res) => child.on('close', res));
+  assert.equal(code, 0);
+  assert.ok(!err.includes('EPIPE'), err);
 });
