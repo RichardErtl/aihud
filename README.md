@@ -5,6 +5,9 @@
 A narrow, live heads-up display for your Claude Code, Codex and Antigravity sessions, read straight
 from the transcript files these tools already write to your disk.
 
+It shows context fill, session and turn time, subagents, tokens, tools and skills at a glance,
+wherever the agent records them.
+
 ```sh
 npx aihud
 ```
@@ -20,7 +23,10 @@ What it does not show is the state: how full the context is, how long the sessio
 how many subagents are at work, where the tokens go.
 
 aihud is a slim strip next to your terminal that keeps that state in view.
-It only reads. Nothing in the tools it reads is changed, and nothing leaves your machine.
+It only reads; nothing in the tools it reads is changed. Its local server listens on 127.0.0.1
+only, so nothing leaves your machine. The shipped tiles make no network calls, and a test
+enforces it; tiles you write yourself are yours to check (the skill warns you before it writes a
+network call).
 
 ## What it does
 
@@ -192,6 +198,8 @@ transcript. It is not an error; see the coverage column above.
 aihud is one piece of a longer path in working with AI agents:
 **Observe → Understand → Structure → Orchestrate**.
 This is the first step — seeing clearly what the agent is doing.
+It is the first publicly released piece of a broader exploration into agentic software
+engineering: observability first, then structured and orchestrated workflows.
 More about the author: [GitHub](https://github.com/RichardErtl) ·
 [LinkedIn](https://www.linkedin.com/in/richard-ertl-524b80208).
 
