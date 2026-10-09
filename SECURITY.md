@@ -8,3 +8,5 @@ Please do not open a public issue for security problems.
 
 Supported versions: during 0.x only the latest released version receives fixes.
 You will get a first answer within 14 days.
+
+aihud is an independent project, not affiliated with Anthropic, OpenAI or Google. Claude Code, Codex and Antigravity are trademarks of their respective holders.

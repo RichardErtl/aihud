@@ -177,7 +177,7 @@ test('no display on Linux (SSH, headless): one line naming the cause, no browser
     const r = await openWindow(URL_HUD, { home: '/h', tab, platform: 'linux', env: { PATH: '/usr/bin' }, fs: fakeFs('/usr/bin/google-chrome'), spawn: s.spawn, log: c.log, graceMs: 10 });
     assert.equal(s.calls.length, 0, 'something was spawned without a display');
     assert.equal(c.out.length, 1, c.out.join('\n'));
-    assert.match(c.out[0], /no display found \(SSH or headless session\) - the node runs at http:\/\/localhost:4747\/hud; use `aihud serve` and an ssh port forward/);
+    assert.match(c.out[0], /no display found \(SSH or headless session\) - the node runs at http:\/\/localhost:4747\/hud; to view it from another machine, forward the same port: ssh -L 4747:127\.0\.0\.1:4747 <host>/);
     assert.doesNotMatch(c.out[0], /install Chrome/);
     assert.deepEqual(r, { mode: 'none', why: 'no display' });
   }

@@ -105,7 +105,8 @@ export async function openWindow(url, {
 } = {}) {
   const io = { platform, spawn, log };
   if (noDisplay(platform, env)) {
-    log(`aihud: no display found (SSH or headless session) - the node runs at ${url}; use \`aihud serve\` and an ssh port forward to view it from another machine`);
+    const port = new URL(url).port;
+    log(`aihud: no display found (SSH or headless session) - the node runs at ${url}; to view it from another machine, forward the same port: ssh -L ${port}:127.0.0.1:${port} <host>`);
     return { mode: 'none', why: 'no display' };
   }
   if (tab) return openTab(url, io, '--tab');
