@@ -79,11 +79,14 @@ async function drawEverything(browser) {
   });
   await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
   const profile = mkdtempSync(join(tmpdir(), 'aihud-ax3t-'));
-  const chrome = spawn(browser.path, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--window-size=900,900', 'about:blank'], { stdio: 'ignore' });
+  // 438 measures each wait setTimeout(20): should the measuring tab end up hidden (the about:blank tab in front), Chrome
+  // throttles those timers to 1 s and the run needs > 438 s, past the 240 s timeout (the macOS CI hang of Actions run 37864165012 matches);
+  // measured locally on a hidden tab: 1000 ms per measure without the flag, 27 ms with it (visible: 25 ms)
+  const chrome = spawn(browser.path, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-timer-throttling', '--window-size=900,900', 'about:blank'], { stdio: 'ignore' });
   const out = {};
   try {
     let port = null;
-    for (const end = Date.now() + 15_000; Date.now() < end && !port; await sleep(100)) {
+    for (const end = Date.now() + 45_000; Date.now() < end && !port; await sleep(100)) {   // the first, cold Chrome start of a CI job took up to 17.1 s (Actions run 37862940551; warm starts < 4 s)
       try { const t = readFileSync(join(profile, 'DevToolsActivePort'), 'utf8'); if (t.includes('\n')) port = t.split('\n')[0].trim(); } catch { /* still locked or not there */ }
     }
     assert.ok(port, 'the browser opened its debugging port');

@@ -36,7 +36,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function devtoolsPort(profile) {
   const file = join(profile, 'DevToolsActivePort');
-  for (const end = Date.now() + 15_000; Date.now() < end; await sleep(100)) {
+  for (const end = Date.now() + 45_000; Date.now() < end; await sleep(100)) {   // the first, cold Chrome start of a CI job took up to 17.1 s (Actions run 37862940551; warm starts < 4 s)
     try { const text = readFileSync(file, 'utf8'); if (text.includes('\n')) return text.split('\n')[0].trim(); } catch { /* not there or still locked */ }
   }
   throw new Error('the browser did not open its debugging port');
@@ -81,7 +81,6 @@ const centreOf = (selector) => `(() => { const e = document.querySelector(${JSON
 const setControl = (selector, value) => `(() => { const e = document.querySelector(${JSON.stringify(selector)}); e.value = ${JSON.stringify(value)}; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; })()`;
 
 test('Settings + Start in a real browser: Start until done (marker in settings.json), edit → autosave → POST /settings → disk → survives reload, layout + colour take effect in /hud, the entry opens the composer', { timeout: 120_000 }, async (t) => {
-  if (process.platform === 'linux') { t.skip('parked: red only on Linux (font/timing), not provably a code defect'); return; }
   const browser = findBrowser();
   if (!browser || browser.noApp) { t.skip(`no Chrome, Edge or Chromium found${browser ? ` (${browser.noApp})` : ''}`); return; }
 
@@ -106,6 +105,9 @@ test('Settings + Start in a real browser: Start until done (marker in settings.j
     await dt.send('Page.enable');
     await dt.send('Runtime.enable');
     await dt.send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 900, deviceScaleFactor: 1, mobile: false });
+    // no theme is saved, so the HUD follows the system scheme (hud.js applyTheme); pin it to dark, as step 5 expects,
+    // instead of inheriting the host's: headless Chrome on the CI runners reports light (red at step 5 on macOS/Windows; the same cause parked it on Linux)
+    await dt.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
     const ready = `document.getElementById('window') && document.getElementById('window').dataset.settings === 'ready'`;
 
     // 1. first open (a hash names Layouts, so the hash wins): the Start tab is in front of the others, the page stores nothing;

@@ -32,7 +32,7 @@ const PROOF = process.env.AIHUD_PROOF_DIR || '';
 const noBrowser = () => { const b = findBrowser(); return !b || b.noApp ? `no Chrome, Edge or Chromium found${b ? ` (${b.noApp})` : ''}` : ''; };
 
 async function devtoolsPort(profile) {
-  for (const end = Date.now() + 15_000; Date.now() < end; await sleep(100)) {
+  for (const end = Date.now() + 45_000; Date.now() < end; await sleep(100)) {   // the first, cold Chrome start of a CI job took up to 17.1 s (Actions run 37862940551; warm starts < 4 s)
     try { const text = readFileSync(join(profile, 'DevToolsActivePort'), 'utf8'); if (text.includes('\n')) return text.split('\n')[0].trim(); } catch { /* not there yet */ }
   }
   throw new Error('the browser did not open its debugging port');

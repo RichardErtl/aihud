@@ -32,7 +32,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function devtoolsPort(profile) {
   const file = join(profile, 'DevToolsActivePort');
-  for (const end = Date.now() + 15_000; Date.now() < end; await sleep(100)) {
+  for (const end = Date.now() + 45_000; Date.now() < end; await sleep(100)) {   // the first, cold Chrome start of a CI job took up to 17.1 s (Actions run 37862940551; warm starts < 4 s)
     try { const text = readFileSync(file, 'utf8'); if (text.includes('\n')) return text.split('\n')[0].trim(); } catch { /* not there or still locked */ }
   }
   throw new Error('the browser did not open its debugging port');

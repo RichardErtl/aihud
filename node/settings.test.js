@@ -25,6 +25,7 @@ const PORT = await freePort();
 const PORT_2 = await freePort();
 const PORT_3 = await freePort();
 const PORT_4 = await freePort();   // the restarted node: a pooled socket of a closed node is never reused
+const PORT_5 = await freePort();   // the same for the node started on settings.projects: undici would reuse a pooled socket of the closed node on PORT_3 before it sees the FIN (other side closed / ECONNRESET on Linux and Windows CI)
 
 function sandbox() {
   const base = mkdtempSync(join(tmpdir(), 'aihud-settings-'));
@@ -192,9 +193,9 @@ test('POST /settings never overwrites a broken settings.json and never writes th
   writeFileSync(join(home2, 'settings.json'), JSON.stringify({ projects: s.projects }));
   let node2 = null;
   try {
-    node2 = await createNode({ port: PORT_3, home: home2, startDir: 'C:\\dev\\sample-app' });
+    node2 = await createNode({ port: PORT_5, home: home2, startDir: 'C:\\dev\\sample-app' });
     assert.equal(node2.projects, s.projects);
-    assert.ok((await req(PORT_3, '/sessions')).json.sessions.length >= 1, 'the sessions come from that folder');
+    assert.ok((await req(PORT_5, '/sessions')).json.sessions.length >= 1, 'the sessions come from that folder');
   } finally {
     if (node2) await node2.close();
     if (saved === undefined) delete process.env.AIHUD_PROJECTS; else process.env.AIHUD_PROJECTS = saved;

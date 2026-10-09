@@ -108,7 +108,7 @@ test('composer by mouse in a real browser: drag, refuse an occupied place, name,
   try {
     // the browser names its debugging port in the profile folder
     const portFile = join(profile, 'DevToolsActivePort');
-    const end = Date.now() + 15_000;
+    const end = Date.now() + 45_000;   // the first, cold Chrome start of a CI job took up to 17.1 s (Actions run 37862940551; warm starts < 4 s)
     // Chrome writes this file while we poll it: on Windows a read can hit EBUSY/EPERM mid-write, so a failed read counts as "not ready yet"
     const readPort = () => { try { const v = readFileSync(portFile, 'utf8'); return v.includes('\n') ? v : null; } catch { return null; } };
     let portText;

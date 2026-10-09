@@ -12,7 +12,7 @@ import { WINDOW_ONLY_SETTINGS, folderOf } from './hud.js';
 import { WINDOW_ONLY_SETTINGS as STORE_WINDOW_ONLY } from '../node/store.js';
 import { GRID, pickOrientation, unitFor, tileSize, isTile, extent, boot, layoutOverride, themeOverrides, tipEntries, placeTip } from './hud.js';
 import { layoutBody, saveLayout } from '../composer/composer.js';
-import { createNode } from '../node/server.js';
+import { createNode, slugOf } from '../node/server.js';
 import { createServer as netServer } from 'node:net';
 
 // FG-A4: the OS hands out the test port (port 0, read, release) - no fixed 43xx/44xx port, so parallel runs never collide.
@@ -663,7 +663,7 @@ test('boot: no session in the start folder -> hint "showing newest" (flag separa
   mkdirSync(home);
   writeFileSync(join(home, 'settings.json'), JSON.stringify({ layout_portrait: 'probe-portrait', layout_landscape: 'probe-portrait' }));
   const port = await freePort();
-  const node = await createNode({ port, projects, home, startDir: 'C:/dev/elsewhere'.replace(/\//g, '\\') });
+  const node = await createNode({ port, projects, home, startDir: join(base, 'elsewhere') });   // a native path: basename() splits only at the platform's separator
   const win = fakeWindow(162, 900);
   let hud = { close() {} };
   try {
@@ -690,7 +690,7 @@ test('fallback hint: pinned session suppresses it; switch-back when the start fo
   cpSync(FIXTURES, projects, { recursive: true });
   mkdirSync(home);
   const port = await freePort();
-  const node = await createNode({ port, projects, home, startDir: 'C:\\dev\\elsewhere' });
+  const node = await createNode({ port, projects, home, startDir: join(base, 'elsewhere') });   // native, as process.cwd() would give it
   const url = `http://127.0.0.1:${port}`;
   const stub = { meta: { name: 'example-number', sizes: [{ cols: 8, rows: 6 }] }, render() {} };
   const win = fakeWindow(162, 900);
@@ -723,7 +723,7 @@ test('fallback hint: pinned session suppresses it; switch-back when the start fo
     select(root.children[0].children[0], { session_id: null });   // back to following
     await settle(hud);
     // (b) the start folder gets a session: switch back, hint gone
-    const dir = join(projects, 'C--dev-elsewhere');
+    const dir = join(projects, slugOf(join(base, 'elsewhere')));
     mkdirSync(dir, { recursive: true });
     const fresh = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
     cpSync(join(projects, SLUG, `${SID_A}.jsonl`), join(dir, `${fresh}.jsonl`));

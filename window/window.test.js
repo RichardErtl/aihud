@@ -993,7 +993,7 @@ test('Start tab: a marker that cannot be saved is said, Start still goes away (n
 });
 
 test('no ?session and no session in the start folder: the status says it follows the newest session (none in <folder>); a pin does not', async () => {
-  const s = await sandbox(await freePort(), { welcome_seen: true }, 'C:\\dev\\elsewhere');
+  const s = await sandbox(await freePort(), { welcome_seen: true }, join(tmpdir(), 'elsewhere'));   // a native path: basename() splits only at the platform's separator
   let app = { close() {} };
   let app2 = { close() {} };
   try {

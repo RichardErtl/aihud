@@ -286,6 +286,8 @@ export function boot(win, { base = '', importModule = (url) => import(url) } = {
       w = Math.min(view.w - 8, 2 * 230);
       tipEl.dataset.wide = '';
       tipEl.style.width = `${w}px`;
+      // still cut off (a wider font, e.g. DejaVu Sans on Linux, wraps a hint one line more): the whole band width
+      if (body.scrollHeight > body.clientHeight && w < view.w - 8) { w = view.w - 8; tipEl.style.width = `${w}px`; }
     }
     const pos = placeTip({ rect: el.getBoundingClientRect(), tip: { w, h: tipEl.offsetHeight }, view, orientation: state.orientation });
     Object.assign(tipEl.style, { left: `${pos.x}px`, top: `${pos.y}px`, visibility: 'visible' });

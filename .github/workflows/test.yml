@@ -20,8 +20,8 @@ jobs:
     # runner images ship it, so AIHUD_BROWSER stays unset. They start it with --headless=new,
     # which needs no display: no xvfb on Linux. Without a browser they skip, never fail.
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
       # This repository's root is the package root, so the suite runs right here.

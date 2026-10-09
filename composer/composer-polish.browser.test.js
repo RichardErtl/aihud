@@ -99,7 +99,7 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
   const tabs = [];
   try {
     const portFile = join(profile, 'DevToolsActivePort');
-    const end = Date.now() + 15_000;
+    const end = Date.now() + 45_000;   // the first, cold Chrome start of a CI job took up to 17.1 s (Actions run 37862940551; warm starts < 4 s)
     // Chrome writes this file while we poll it: on Windows a read can hit EBUSY/EPERM mid-write, so a failed read counts as "not ready yet"
     const readPort = () => { try { const v = readFileSync(portFile, 'utf8'); return v.includes('\n') ? v : null; } catch { return null; } };
     let portText;
@@ -129,6 +129,7 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
     };
     // a tab in the background does not navigate (no frames): front first
     const go = async (d, u) => { await d.send('Page.bringToFront'); await d.send('Page.navigate', { url: u }); };
+    // Page.navigate answers before the new page has drawn #composer, so a wait after go()/open() guards the element: on the old page or about:blank it is null (macOS CI: TypeError at the landscape step)
     const confirms = (d) => d.evaluate('window.__confirms || []');
     const stubConfirm = (d, answer) => d.evaluate(`(() => { window.__confirms = []; window.__answer = ${answer}; window.confirm = (m) => { window.__confirms.push(m); sessionStorage.setItem('__confirms', JSON.stringify(window.__confirms)); return window.__answer; }; return true; })()`);
     const onSettings = async (d, what) => {
@@ -139,7 +140,7 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
 
     // ── (3)+(4a) the composer loads a layout by ?layout=, the name field is prominent and filled ──
     const comp = await open(1400, 900, '/composer?layout=night-box');
-    await comp.until(`document.getElementById('composer').dataset.loaded === 'night-box' && document.getElementById('composer').dataset.placed === '2'`, 'the loaded layout');
+    await comp.until(`document.getElementById('composer') && document.getElementById('composer').dataset.loaded === 'night-box' && document.getElementById('composer').dataset.placed === '2'`, 'the loaded layout');
     assert.equal(await comp.evaluate(q('#composer .c-name input', 'e.value')), 'Night Box', 'the name is loaded');
     assert.equal(await comp.evaluate(`document.getElementById('composer').dataset.rows`), '8', 'grid = what the HUD would draw: 8 rows');
     const nameLook = await comp.evaluate(q('#composer .c-name input', `(() => { const c = getComputedStyle(e); return { border: parseFloat(c.borderTopWidth), font: parseFloat(c.fontSize), width: e.getBoundingClientRect().width }; })()`));
@@ -247,7 +248,7 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
 
     // ── (4) delete: ask first (own), trash instead of a hard delete ──
     await go(comp, `${url}/composer?layout=zeta`);
-    await comp.until(`document.getElementById('composer').dataset.loaded === 'zeta'`, 'zeta loaded');
+    await comp.until(`document.getElementById('composer') && document.getElementById('composer').dataset.loaded === 'zeta'`, 'zeta loaded');
     await stubConfirm(comp, false);
     const delRect = () => comp.evaluate(rectOf('#composer .bar button.delete'));
     await comp.click(centre(await delRect()));
@@ -270,7 +271,7 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
     // shipped: says so; the settings fall back to the default
     assert.equal(await post('/settings', { layout_portrait: 'fancy-a-portrait' }), 200);
     await go(comp, `${url}/composer?layout=fancy-a-portrait`);
-    await comp.until(`document.getElementById('composer').dataset.loaded === 'fancy-a-portrait'`, 'a shipped layout loaded');
+    await comp.until(`document.getElementById('composer') && document.getElementById('composer').dataset.loaded === 'fancy-a-portrait'`, 'a shipped layout loaded');
     await stubConfirm(comp, true);
     await comp.click(centre(await delRect()));
     await onSettings(comp, 'the shipped delete also returned to Settings');
@@ -284,7 +285,7 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
 
     // ── (1) landscape resizes by columns ──
     await go(comp, `${url}/composer?orientation=landscape`);
-    await comp.until(`document.getElementById('composer').dataset.orientation === 'landscape' && document.getElementById('composer').dataset.unit === '22.5'`, 'landscape composer');
+    await comp.until(`document.getElementById('composer') && document.getElementById('composer').dataset.orientation === 'landscape' && document.getElementById('composer').dataset.unit === '22.5'`, 'landscape composer');
     const lh = centre(await comp.evaluate(rectOf('#composer .grid .resize')));
     await comp.drag(lh, { x: lh.x + 3 * u, y: lh.y + 200 });
     assert.equal(await comp.evaluate(`document.getElementById('composer').dataset.cols`), '51', 'landscape: 48 + 3 columns');

@@ -33,7 +33,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function devtoolsPort(profile) {
   const file = join(profile, 'DevToolsActivePort');
-  for (const end = Date.now() + 15_000; Date.now() < end; await sleep(100)) {
+  for (const end = Date.now() + 45_000; Date.now() < end; await sleep(100)) {   // the first, cold Chrome start of a CI job took up to 17.1 s (Actions run 37862940551; warm starts < 4 s)
     try { const text = readFileSync(file, 'utf8'); if (text.includes('\n')) return text.split('\n')[0].trim(); } catch { /* not there or still locked */ }
   }
   throw new Error('the browser did not open its debugging port');
@@ -196,6 +196,9 @@ test('Settings + Live in a real browser: theme control on top, real-tile layout 
     await dt.evaluate(`location.hash = '#live'`);
     await dt.until(hudsReady, 'both Live frames');
     await dt.until(`${frameThemes}.every((x) => x === 'light')`, 'both frames in light');
+    // the frames booted inside the hidden Live pane (0x0: both HUDs say portrait, unit 15) and re-pick their shape on the
+    // resize when the pane shows - measured 33 ms locally, slower on the macOS runners (stale 'portrait' / '15' read there)
+    await dt.until(`(() => { const h = [...document.querySelectorAll('iframe.live-hud')].map((f) => f.contentDocument && f.contentDocument.getElementById('hud')); return h.length === 2 && h.every(Boolean) && h[0].dataset.orientation === 'landscape' && h[1].dataset.orientation === 'portrait' && h[1].dataset.unit === '22.5'; })()`, 'each HUD re-picked the shape of its shown frame');
     const live = JSON.parse(await dt.evaluate(`JSON.stringify([...document.querySelectorAll('iframe.live-hud')].map((f) => { const r = f.getBoundingClientRect(); const d = f.contentDocument.getElementById('hud'); return { top: r.top, bottom: r.bottom, w: r.width, h: r.height, layout: d.dataset.layout, orientation: d.dataset.orientation, unit: d.dataset.unit, src: f.src, caption: f.closest('figure').querySelector('figcaption').textContent }; }))`));
     t.diagnostic(`live frames ${JSON.stringify(live)}`);
     assert.deepEqual(live.map((f) => f.caption), ['Landscape', 'Portrait']);
@@ -227,7 +230,8 @@ test('Settings + Live in a real browser: theme control on top, real-tile layout 
     await dt.evaluate(`location.hash = '#layouts'`);
     await dt.click(await dt.evaluate(centreOf('#window label.l-card[data-layout="minimal-portrait"]')));
     await dt.evaluate(`location.hash = '#live'`);
-    await dt.until(`document.querySelectorAll('iframe.live-hud')[1].contentDocument.getElementById('hud').dataset.layout === 'minimal-portrait'`, 'the portrait frame on the picked layout');
+    // the pick gives the portrait frame a new src (window.js drawLive): while it loads there is no #hud yet, so guard it like hudsReady
+    await dt.until(`(() => { const d = document.querySelectorAll('iframe.live-hud')[1].contentDocument; const h = d && d.getElementById('hud'); return !!h && h.dataset.layout === 'minimal-portrait'; })()`, 'the portrait frame on the picked layout');
     assert.equal(await dt.evaluate(`document.querySelectorAll('iframe.live-hud')[0].contentDocument.getElementById('hud').dataset.layout`), 'essentials-landscape');
     assert.deepEqual(dt.errors, [], 'no page error, no console error');
   } finally { await kit.stop(); }
