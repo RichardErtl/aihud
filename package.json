@@ -1,6 +1,6 @@
 {
   "name": "aihud",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A narrow live heads-up display for Claude Code, Codex and Antigravity sessions, read straight from the local session transcripts.",
   "author": {
     "name": "Richard Ertl",

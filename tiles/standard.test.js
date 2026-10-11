@@ -215,6 +215,34 @@ test('header: click on the session id opens the list, a pick dispatches aihud:se
   }
 });
 
+test('header session list: two lines per row (id + time, label), label cut at the start, full label in title=', () => {
+  const title = 'a very long sidecar title that cannot fit one row of the narrow list';
+  const hud = { ...HUD, sessions: HUD.sessions.map((s, i) => (i === 0 ? { ...s, title } : s)) };
+  for (const name of [`header-${STYLE}-portrait`, `header-${STYLE}-landscape`]) {
+    const { meta: m, render: r } = MODULES.get(name);
+    const el = makeElement();
+    r(el, { ...RICH, hud }, { ...m.sizes[0], unit: 20 });
+    const list = el.children[1];
+    const rows = list.children;
+    assert.equal(rows[0].children.length, 1, `${name}: follow newest stays a single line`);
+    hud.sessions.forEach((s, i) => {
+      const row = rows[1 + i];
+      assert.equal(row.children.length, 2, `${name}: two lines per session row`);
+      const [l1, l2] = row.children;
+      assert.equal(l1.children.length, 2, `${name}: line 1 = id + time`);
+      assert.equal(l1.children[0].textContent, s.session_id.slice(0, 8));
+      assert.match(l1.children[1].textContent, /^(\d\d:\d\d|\d+d|–)$/, `${name}: time keeps the lastSeen form`);
+      const label = s.title || s.project_slug;
+      assert.equal(l2.getAttribute('title'), label, `${name}: full label in title=`);
+      assert.equal(l2.textContent, label);
+      assert.match(l2.style.cssText, /direction:rtl/, `${name}: label cut at the start (rtl + ellipsis)`);
+      assert.match(l2.style.cssText, /text-overflow:ellipsis/);
+      assert.match(l2.children[0].style.cssText, /direction:ltr/, `${name}: inner text reads left to right`);
+    });
+    assert.match(list.style.cssText, /max-width:calc\(100vw - 8px\)/, `${name}: never wider than the window`);
+  }
+});
+
 test('the two shipped layouts: arrangement per the transcription rule, extent = contract, schema-valid', async () => {
   const home = mkdtempSync(join(tmpdir(), 'aihud-standard-'));
   try {

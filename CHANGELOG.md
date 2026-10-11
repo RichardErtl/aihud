@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Before 1.0, any minor release may change behaviour.
 
+## [0.1.1] — 2026-10-11
+
+### Changed
+
+- The session list in the header tiles shows two lines per session: the session id and the time
+  of its last activity, then the session title, else the project folder (shortened from the
+  front, so its end stays visible). The list stays inside the window, and the session id is
+  easier to click; clicking it closes the value tip, so the tip never covers the list.
+
+### Fixed
+
+- The Composer's Save button is no longer cut off in windows around 1100 px wide.
+
+### Documentation
+
+- README: a short demo GIF at the top; one line on what aihud costs and where it runs (free, no
+  tokens, no login, local only); a note that writing a tile uses your own Claude Code session's
+  tokens; `--poll`, `--version` and `AIHUD_HOME` in the options table.
+
 ## [0.1.0] — 2026-10-09
 
 First public release.
@@ -30,4 +49,5 @@ First public release.
 - The app window opens without Chrome's first-run and default-browser prompts.
 - Readers for Claude Code (full), Codex (full) and Antigravity (reduced) transcripts, read only.
 
+[0.1.1]: https://github.com/RichardErtl/aihud/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RichardErtl/aihud/releases/tag/v0.1.0

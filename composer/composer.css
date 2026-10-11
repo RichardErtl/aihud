@@ -48,13 +48,14 @@ body { font: 13.5px/1.45 var(--aihud-font); }
 }
 #composer .c-field input[type="number"]::-webkit-inner-spin-button { display: none; }
 #composer .c-field input:disabled { color: var(--aihud-faint); border-bottom-style: dotted; }
-#composer .c-field input[type="range"] { width: 110px; accent-color: var(--w-accent); }
+#composer .c-field input[type="range"] { flex: 0 1 110px; width: 110px; min-width: 36px; accent-color: var(--w-accent); }
+#composer .c-field:has(input[type="range"]) { min-width: 0; }
 #composer .readout { font: 12px var(--aihud-font-mono); color: var(--aihud-faint); }
 #composer .c-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 #composer .hud-link[hidden] { display: none; }
 #composer .quiet-button { color: var(--aihud-dim); background: none; border: 0; padding: 0; }
 #composer .quiet-button:hover { color: var(--aihud-text); }
-#composer .save { font-weight: 600; color: var(--aihud-bg); background: var(--w-accent); border: 0; border-radius: var(--aihud-radius); padding: 7px 18px; }
+#composer .save { flex: none; font-weight: 600; color: var(--aihud-bg); background: var(--w-accent); border: 0; border-radius: var(--aihud-radius); padding: 7px 18px; }
 #composer .save:hover { filter: brightness(1.08); }
 
 /* three columns: panel 252 px · stage · guide 318 px */

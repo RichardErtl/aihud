@@ -29,7 +29,7 @@ export function render(el, data, size) {
   const hud = d.hud && Array.isArray(d.hud.sessions) ? d.hud : null;
   const row = h(doc, 'div', 'display:flex;justify-content:space-between;align-items:baseline;gap:6px');
   const sid = h(doc, hud ? 'button' : 'span',
-    'font:inherit;font-family:var(--aihud-font-mono);padding:0;margin:0;border:0;background:none;'
+    'font:inherit;font-family:var(--aihud-font-mono);padding:3px 6px;margin:-3px -6px;border:0;background:none;'
     + `color:var(${id ? '--aihud-text' : '--aihud-faint'})${hud ? ';cursor:pointer' : ''}`,
     id ? id.slice(0, 8) : '–');
   if (id) sid.setAttribute('data-field', 'session.id');
@@ -57,7 +57,7 @@ function sessionSwitch(el, sid, hud, zoom) {
   const doc = el.ownerDocument;
   const list = h(doc, 'div', [
     'position:fixed', 'inset:auto', 'margin:0', 'padding:4px 0', 'box-sizing:border-box',
-    `min-width:${170 * zoom}px`, `max-width:${280 * zoom}px`, 'overflow:auto',
+    `width:${280 * zoom}px`, `max-width:calc(100vw - ${8 * zoom}px)`, 'overflow:auto',
     'background:var(--aihud-panel)', 'color:var(--aihud-text)', 'border:1px solid var(--aihud-line)',
     'border-radius:var(--aihud-radius)', 'box-shadow:0 8px 24px color-mix(in srgb, var(--aihud-bg) 70%, transparent)',
     `font:${11.5 * zoom}px/1.35 var(--aihud-font)`, 'font-variant-numeric:tabular-nums',
@@ -76,17 +76,19 @@ function sessionSwitch(el, sid, hud, zoom) {
     if (typeof sid.getBoundingClientRect !== 'function') return;
     const r = sid.getBoundingClientRect();
     const view = doc.defaultView;
-    list.style.left = `${Math.max(0, r.left)}px`;
+    const vw = view && view.innerWidth ? view.innerWidth : 0;
+    const w = vw ? Math.min(280 * zoom, vw - 8 * zoom) : 280 * zoom;   // never wider than the window
+    list.style.width = `${w}px`;
+    list.style.left = `${vw ? Math.min(Math.max(r.left, 4 * zoom), Math.max(4 * zoom, vw - w - 4 * zoom)) : Math.max(0, r.left)}px`;
     list.style.top = `${r.bottom + 4 * zoom}px`;
     if (view && view.innerHeight) list.style.maxHeight = `${Math.max(60, view.innerHeight - r.bottom - 8 * zoom)}px`;
   };
 
-  const pad = `${4 * zoom}px ${10 * zoom}px`;
+  const pad = `${3.5 * zoom}px ${10 * zoom}px`;
   const entry = (sessionId, strong, cells) => {
     const b = h(doc, 'button', [
-      'display:flex', 'justify-content:space-between', 'align-items:baseline', `gap:${12 * zoom}px`, 'width:100%',
-      'box-sizing:border-box', `padding:${pad}`, 'margin:0', 'border:0', 'background:none', 'font:inherit',
-      'color:inherit', 'text-align:left', 'cursor:pointer',
+      'display:block', 'width:100%', 'box-sizing:border-box', `padding:${pad}`, 'margin:0', 'border:0', 'background:none',
+      'font:inherit', 'color:inherit', 'text-align:left', 'cursor:pointer',
     ].join(';'));
     b.setAttribute('role', 'option');
     b.setAttribute('aria-selected', String(strong));
@@ -107,12 +109,19 @@ function sessionSwitch(el, sid, hud, zoom) {
     if (!s || typeof s.session_id !== 'string') continue;
     const current = s.session_id === hud.current;
     const label = typeof s.title === 'string' && s.title ? s.title : typeof s.project_slug === 'string' ? s.project_slug : '';
-    list.append(entry(s.session_id, current, [
-      h(doc, 'span', `font-family:var(--aihud-font-mono);flex:none;font-weight:${current ? 600 : 400};color:var(${current ? '--aihud-text' : '--aihud-dim'})`,
+    // line 1: id left, last activity right (both short, never cut); line 2: the label over the full row width,
+    // cut at the START ("…" in front) because the end of a path is the meaningful part: the outer span runs rtl so the
+    // ellipsis sits on the left, the inner span isolates the text as ltr so it reads normally; full text in title=
+    const l1 = h(doc, 'span', `display:flex;justify-content:space-between;align-items:baseline;gap:${12 * zoom}px;line-height:${15 * zoom}px`);
+    l1.append(
+      h(doc, 'span', `font-family:var(--aihud-font-mono);flex:none;font-weight:${current ? 700 : 400};color:var(${current ? '--aihud-text' : '--aihud-dim'})`,
         s.session_id.slice(0, 8)),
-      h(doc, 'span', 'flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--aihud-faint)', label),
-      h(doc, 'span', 'flex:none;color:var(--aihud-dim)', lastSeen(s.age_seconds, nowMs)),
-    ]));
+      h(doc, 'span', 'flex:none;color:var(--aihud-dim)', lastSeen(s.age_seconds, nowMs)));
+    const l2 = h(doc, 'span', `display:block;direction:rtl;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:${10.5 * zoom}px;line-height:${14 * zoom}px;color:var(--aihud-dim)`);
+    l2.setAttribute('data-label', '');
+    l2.setAttribute('title', label);
+    l2.append(h(doc, 'span', 'direction:ltr;unicode-bidi:isolate', label));
+    list.append(entry(s.session_id, current, [l1, l2]));
   }
 
   if (canPop) {

@@ -442,7 +442,8 @@ export function boot(win, { base = '', importModule = (url) => import(url) } = {
   // session list) keep their click, and a HUD framed inside the window opens nothing
   grid.addEventListener('click', (e) => {
     const t = e && e.target;
-    if (t && typeof t.closest === 'function' && t.closest(CONTROL_SELECTOR)) return;
+    // a control's own click (the session list opening) takes the tip away, so it never covers the list
+    if (t && typeof t.closest === 'function' && t.closest(CONTROL_SELECTOR)) { hideTip(); return; }
     if (win.top && win.top !== win) return;
     if (typeof win.open === 'function') win.open(windowHref(state.current), 'aihud-window');
   });

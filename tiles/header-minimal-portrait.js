@@ -132,6 +132,8 @@ function sessionSwitch(el, anchor, data, z) {
   anchor.style.cursor = 'pointer';
   anchor.setAttribute('role', 'button');
   anchor.setAttribute('tabindex', '0');
+  anchor.style.padding = `${3 * z}px ${6 * z}px`;   // a real hit area; the negative margin keeps the row where it was
+  anchor.style.margin = `${-3 * z}px ${-6 * z}px`;
   let list = null;
   const outside = (ev) => { if (!within(ev.target, el)) close(); };
   const onKey = (ev) => { if (ev.key === 'Escape') close(); };
@@ -144,12 +146,26 @@ function sessionSwitch(el, anchor, data, z) {
     close();
     el.dispatchEvent(new view.CustomEvent('aihud:select-session', { bubbles: true, detail: { session_id: sessionId } }));
   }
-  function row(left, right, strong, mono, onPick, hover) {
-    const r = h(doc, 'div', `display:flex;justify-content:space-between;gap:${12 * z}px;padding:${4 * z}px ${10 * z}px;cursor:pointer;white-space:nowrap`);
-    r.append(
-      h(doc, 'span', `${mono ? 'font-family:var(--aihud-font-mono);' : ''}${strong ? 'color:var(--aihud-text);font-weight:600' : 'color:var(--aihud-dim)'}`, left),
-      h(doc, 'span', 'color:var(--aihud-dim)', right),
+  // row = line 1 (id left, last activity right, never cut) + line 2 (label over the full width, cut at the START with "…":
+  // the outer span runs rtl so the ellipsis sits left, the inner span isolates the text as ltr; full text in title=)
+  function row(left, right, strong, mono, onPick, hover, label) {
+    const r = h(doc, 'div', `display:block;padding:${3.5 * z}px ${10 * z}px;cursor:pointer;white-space:nowrap`);
+    const l1 = h(doc, 'span', `display:flex;justify-content:space-between;align-items:baseline;gap:${12 * z}px;line-height:${15 * z}px`);
+    l1.append(
+      h(doc, 'span', `flex:none;${mono ? 'font-family:var(--aihud-font-mono);' : ''}${strong ? `color:var(--aihud-text);font-weight:${mono ? 700 : 600}` : 'color:var(--aihud-dim)'}`, left),
+      h(doc, 'span', 'flex:none;color:var(--aihud-dim)', right),
     );
+    if (label == null) r.append(l1.children[0]);   // follow newest: a single line, the text alone
+    else r.append(l1);
+    if (label != null) {
+      const l2 = h(doc, 'span', `display:block;direction:rtl;text-align:left;overflow:hidden;text-overflow:ellipsis;font-size:${10.5 * z}px;line-height:${14 * z}px;color:var(--aihud-dim)`);
+      l2.setAttribute('data-label', '');
+      l2.setAttribute('title', label);
+      l2.append(h(doc, 'span', 'direction:ltr;unicode-bidi:isolate', label));
+      r.append(l2);
+    }
+    r.setAttribute('role', 'option');
+    r.setAttribute('aria-selected', String(!!strong));
     if (hover) r.setAttribute('title', hover);
     r.setAttribute('data-session', onPick == null ? '' : onPick);
     r.addEventListener('click', () => pick(onPick));
@@ -159,8 +175,11 @@ function sessionSwitch(el, anchor, data, z) {
   }
   function open() {
     const b = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: 0, bottom: 0 };
+    const vw = view.innerWidth || 0;
+    const w = vw ? Math.min(280 * z, vw - 8 * z) : 280 * z;   // never wider than the window
+    const left = vw ? Math.min(Math.max(b.left, 4 * z), Math.max(4 * z, vw - w - 4 * z)) : b.left;
     list = h(doc, 'div', [
-      'position:fixed', `left:${b.left}px`, `top:${b.bottom + 4 * z}px`, 'z-index:10', `min-width:${170 * z}px`,
+      'position:fixed', `left:${left}px`, `top:${b.bottom + 4 * z}px`, 'z-index:10', `width:${w}px`,
       'max-height:70vh', 'overflow-y:auto', `padding:${4 * z}px 0`, 'box-sizing:border-box',
       'background:var(--aihud-panel)', 'border:1px solid var(--aihud-line)', 'border-radius:var(--aihud-radius)',
       'font-family:var(--aihud-font)', `font-size:${11.5 * z}px`, 'font-variant-numeric:tabular-nums',
@@ -175,7 +194,8 @@ function sessionSwitch(el, anchor, data, z) {
         ? (() => { const d = new Date(now - age * 1000); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; })()
         : `${Math.floor(age / 86400)}d`;
       const hover = [s.title, s.project_slug].filter(Boolean).join(' · ');
-      list.append(row(shortId(s.session_id), when, s.session_id === hud.current, true, s.session_id, hover));
+      const label = typeof s.title === 'string' && s.title ? s.title : typeof s.project_slug === 'string' ? s.project_slug : '';
+      list.append(row(shortId(s.session_id), when, s.session_id === hud.current, true, s.session_id, hover, label));
     }
     el.append(list);
     el._aihudListOpen = true;

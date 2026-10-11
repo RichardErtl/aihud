@@ -8,12 +8,16 @@ from the transcript files these tools already write to your disk.
 It shows context fill, session and turn time, subagents, tokens, tools and skills at a glance,
 wherever the agent records them.
 
+**Free · Costs no tokens · No login · Runs locally** — aihud reads the transcript files your agent
+already writes to disk. It never calls a model or a remote API, needs no account or API key, and
+its server listens on 127.0.0.1 only.
+
 ```sh
 npx aihud
 ```
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/RichardErtl/aihud/main/docs/img/hud-portrait.png" alt="The aihud strip in portrait: session header, context gauge, session time, subagents and tokens" width="196">
+  <img src="https://raw.githubusercontent.com/RichardErtl/aihud/main/docs/img/hero.gif" alt="A Claude Code session in the terminal with the aihud strip beside it: session header, context gauge, session and turn time, subagents and tokens update live while the agent works">
 </p>
 
 ## Why
@@ -23,10 +27,9 @@ What it does not show is the state: how full the context is, how long the sessio
 how many subagents are at work, where the tokens go.
 
 aihud is a slim strip next to your terminal that keeps that state in view.
-It only reads; nothing in the tools it reads is changed. Its local server listens on 127.0.0.1
-only, so nothing leaves your machine. The shipped tiles make no network calls, and a test
-enforces it; tiles you write yourself are yours to check (the skill warns you before it writes a
-network call).
+It only reads; nothing in the tools it reads is changed. With the shipped tiles, nothing leaves
+your machine: they make no network calls, and a test enforces it. Tiles you write yourself are
+yours to check (the skill warns you before it writes a network call).
 
 ## What it does
 
@@ -46,6 +49,10 @@ network call).
   closed).
 
 ## See it in action
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RichardErtl/aihud/main/docs/img/hud-portrait.png" alt="The aihud strip in portrait: session header, context gauge, session time, subagents and tokens" width="196">
+</p>
 
 The shipped tiles come in five style families. One strip per family, all on the same sample
 session that ships with the tests:
@@ -102,7 +109,9 @@ update: stop the old server with `Ctrl+C` first, otherwise `npx aihud@latest` re
 | `--tab` | open a normal browser tab instead of the app window (a tab never gets narrower than 500 px) |
 | `--port N` | port of the local server (default 4747, or `"port"` in `~/.aihud/settings.json`) |
 | `--projects <dir>` | the transcript folder to read (default `~/.claude/projects`) |
-| `--home <dir>` | where aihud keeps settings, your tiles and layouts (default `~/.aihud`) |
+| `--home <dir>` | where aihud keeps settings, your tiles and layouts (default `~/.aihud`, or `AIHUD_HOME`) |
+| `--poll <ms>` | switch the file watch off and scan every `<ms>` instead (or `AIHUD_POLL_MS`) |
+| `--version` | print the version and exit |
 | `AIHUD_BROWSER=<path>` | the browser binary for the app window |
 
 `npx aihud serve` starts only the server, without a window. aihud writes only under `~/.aihud/`,
@@ -123,6 +132,8 @@ Claude Code can write a tile for you:
 - `npx aihud install-skill` copies the `/new-tile` skill to `~/.claude/skills/new-tile/`, so
   `/new-tile` works in every project. (Claude Code does not load skills from inside an npm
   package, hence the copy. It overwrites an existing copy only with `--force`.)
+
+Writing a tile runs in your own Claude Code session and uses its tokens; aihud itself spends none.
 
 Your tiles live in `~/.aihud/tiles/` and show up first in the Composer. To see a new tile, run
 `npx aihud check`, then `npx aihud add-tile <id>`, and reload the HUD page: portrait shows it at the

@@ -74,6 +74,10 @@ async function devtools(wsUrl) {
 const rectOf = (selector) => `(() => { const e = document.querySelector(${JSON.stringify(selector)}); e.scrollIntoView({ block: 'nearest' }); const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; })()`;
 const centre = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
 const q = (sel, expr) => `(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? (${expr}) : null; })()`;
+// how long the HUD may take to show a draft change: the edit is posted after 120 ms, but under a
+// full parallel suite (several Chromes at once) the background HUD tab lags; 4 s flaked about 1 in 4
+// runs. The heartbeat (5 s) resends the same draft anyway, so the wait never proved the push path alone.
+const DRAFT_WAIT = 10_000;
 
 test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD, name highlight, load + delete with a confirm', { timeout: 150_000 }, async (t) => {
   const browser = findBrowser();
@@ -152,6 +156,11 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
     assert.equal(list.some((x) => x.startsWith('probe-')), false);
     await comp.until(`!document.querySelector('#composer .cell .body').textContent.startsWith('header-standard')`, 'tile previews');
     await shot(comp, 'b-composer-loaded-name.png');
+    // the bar at a 1100 px window: Save (and Delete, shown for a loaded layout) stay fully inside the viewport
+    await comp.send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 900, deviceScaleFactor: 1, mobile: false });
+    const saveAt1100 = await comp.evaluate(`new Promise((ok) => setTimeout(() => { const r = document.querySelector('#composer .save').getBoundingClientRect(); ok({ right: r.right, left: r.left, vw: innerWidth }); }, 150))`);
+    assert.ok(saveAt1100.left >= 0 && saveAt1100.right <= saveAt1100.vw, `Save fully visible at 1100 px: ${JSON.stringify(saveAt1100)}`);
+    await comp.send('Emulation.setDeviceMetricsOverride', { width: 1400, height: 900, deviceScaleFactor: 1, mobile: false });
 
     // ── (1) resize by dragging the grid handle (portrait: rows) ──
     const handle = await comp.evaluate(rectOf('#composer .grid .resize'));
@@ -177,7 +186,7 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
     await hud.until(`document.querySelector('.draft-overlay[data-state="shown"]')`, 'the draft overlay');
     // the composer sends its draft 120 ms after the last edit (debounce): a HUD that connects inside that window is replayed
     // the previous (60-row) draft first and gets the final 8-row one a moment later. Wait for it, then assert.
-    await hud.until(q('.draft-overlay .frame', 'Math.round(e.getBoundingClientRect().height) === 180'), 'the final 8-row draft reached the HUD', 4000);
+    await hud.until(q('.draft-overlay .frame', 'Math.round(e.getBoundingClientRect().height) === 180'), 'the final 8-row draft reached the HUD', DRAFT_WAIT);
     const frame = () => hud.evaluate(q('.draft-overlay .frame', `(() => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height, x: r.left, y: r.top, tiles: e.querySelectorAll('[data-tile]').length }; })()`));
     let f = await frame();
     assert.deepEqual({ w: f.w, h: f.h, x: f.x, y: f.y, tiles: f.tiles }, { w: 180, h: 8 * 22.5, x: 0, y: 0, tiles: 2 }, 'frame = 8 x 8 cells at the real unit, 2 placed tiles');
@@ -186,12 +195,12 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
     const hh = centre(await comp.evaluate(rectOf('#composer .grid .resize')));
     await comp.drag(hh, { x: hh.x, y: hh.y + 4 * u });
     assert.equal(await comp.evaluate(`document.getElementById('composer').dataset.rows`), '12');
-    await hud.until(q('.draft-overlay .frame', 'Math.round(e.getBoundingClientRect().height) === 270'), 'the HUD frame follows the new height', 4000);
+    await hud.until(q('.draft-overlay .frame', 'Math.round(e.getBoundingClientRect().height) === 270'), 'the HUD frame follows the new height', DRAFT_WAIT);
     const grid = await comp.evaluate(rectOf('#composer .grid'));
     const cellAt = (col, row) => ({ x: grid.x + col * u + u / 2, y: grid.y + row * u + u / 2 });
     await comp.drag(centre(await comp.evaluate(rectOf('#composer .tiles .tile[data-tile="time-standard-portrait"]'))), cellAt(0, 9));
     assert.equal(await comp.evaluate(`document.getElementById('composer').dataset.placed`), '3');
-    await hud.until(q('.draft-overlay .frame', `e.querySelectorAll('[data-tile]').length === 3`), 'the placed tile appears in the HUD', 4000);
+    await hud.until(q('.draft-overlay .frame', `e.querySelectorAll('[data-tile]').length === 3`), 'the placed tile appears in the HUD', DRAFT_WAIT);
     // the HUD's own layout stays untouched underneath, its tiles are not the draft's
     assert.notEqual(await hud.evaluate(`document.getElementById('hud').dataset.layout`), 'night-box');
     await hud.send('Page.bringToFront');
@@ -207,19 +216,19 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
 
     // ── (2) a hidden composer tab ends its draft (throttled timers would make it blink); visible again restores it ──
     await comp.evaluate(`(() => { window.__vis = 'hidden'; document.dispatchEvent(new Event('visibilitychange')); return true; })()`);
-    await hud.until(q('.draft-overlay', 'e.dataset.state === "off"'), 'the draft ended while the composer is hidden', 4000);
+    await hud.until(q('.draft-overlay', 'e.dataset.state === "off"'), 'the draft ended while the composer is hidden', DRAFT_WAIT);
     await comp.evaluate(`(() => { window.__vis = 'visible'; document.dispatchEvent(new Event('visibilitychange')); return true; })()`);
-    await hud.until(q('.draft-overlay', 'e.dataset.state === "shown"'), 'the draft is back when the composer is visible', 4000);
+    await hud.until(q('.draft-overlay', 'e.dataset.state === "shown"'), 'the draft is back when the composer is visible', DRAFT_WAIT);
 
     // ── (2) the draft ends on Clear ──
     await stubConfirm(comp, true);
     await comp.send('Page.bringToFront');
     await comp.click(centre(await comp.evaluate(rectOf('#composer .bar button.clear'))));
     assert.equal(await comp.evaluate(`document.getElementById('composer').dataset.placed`), '0');
-    await hud.until(q('.draft-overlay', 'e.dataset.state === "off" && e.hidden === true'), 'the draft ended on Clear', 4000);
+    await hud.until(q('.draft-overlay', 'e.dataset.state === "off" && e.hidden === true'), 'the draft ended on Clear', DRAFT_WAIT);
     // ... and the next edit brings it back
     await comp.drag(centre(await comp.evaluate(rectOf('#composer .tiles .tile[data-tile="header-standard-portrait"]'))), cellAt(0, 0));
-    await hud.until(q('.draft-overlay', 'e.dataset.state === "shown"'), 'a new edit restarts the draft', 4000);
+    await hud.until(q('.draft-overlay', 'e.dataset.state === "shown"'), 'a new edit restarts the draft', DRAFT_WAIT);
 
     // ── (3) a Save without a name highlights the name field ──
     await comp.evaluate(q('#composer .c-name input', `(() => { e.value = ''; e.dispatchEvent(new Event('input')); return true; })()`));
@@ -236,15 +245,15 @@ test('AP.b by mouse in a real browser: resize by dragging, live draft in the HUD
     // ... and Save ends the draft
     await comp.click(centre(await comp.evaluate(rectOf('#composer .bar button.save'))));
     await comp.until(`document.getElementById('composer').dataset.saved === 'box-two'`, 'the save');
-    await hud.until(q('.draft-overlay', 'e.dataset.state === "off"'), 'the draft ended on Save', 4000);
+    await hud.until(q('.draft-overlay', 'e.dataset.state === "off"'), 'the draft ended on Save', DRAFT_WAIT);
     assert.equal(await comp.evaluate(`document.getElementById('composer').dataset.loaded`), 'box-two', 'a saved layout is the loaded one');
 
     // ── (2) the draft ends when the composer tab closes (pagehide) ──
     await comp.drag(centre(await comp.evaluate(rectOf('#composer .tiles .tile[data-tile="time-standard-portrait"]'))), cellAt(0, 4));
-    await hud.until(q('.draft-overlay', 'e.dataset.state === "shown"'), 'a draft again', 4000);
+    await hud.until(q('.draft-overlay', 'e.dataset.state === "shown"'), 'a draft again', DRAFT_WAIT);
     await go(comp, 'about:blank');
     await comp.until(`location.href === 'about:blank'`, 'the composer tab left the page');
-    await hud.until(q('.draft-overlay', 'e.dataset.state === "off"'), 'the draft ended with the tab', 4000);
+    await hud.until(q('.draft-overlay', 'e.dataset.state === "off"'), 'the draft ended with the tab', DRAFT_WAIT);
 
     // ── (4) delete: ask first (own), trash instead of a hard delete ──
     await go(comp, `${url}/composer?layout=zeta`);

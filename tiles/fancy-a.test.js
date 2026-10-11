@@ -203,6 +203,7 @@ test('fancy-a: the header carries the session switch — click the id, pick, the
     click(doc, sid);
     let list = byRole(el, 'session-list')[0];
     assert.ok(list, `${name}: a click opens the list`);
+    assert.match(list.style.cssText, /max-width:calc\(100vw - 8px\)/, `${name}: never wider than the window`);
     const rows = all(list).filter((n) => n.attrs.role === 'option');
     assert.equal(rows.length, 3, 'follow newest + two sessions');
     assert.deepEqual(rows.map((r) => r.attrs['aria-selected']), ['true', 'true', 'false'], 'not pinned = following; current marked');

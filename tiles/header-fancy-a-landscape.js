@@ -69,7 +69,7 @@ function sessionId(doc, el, data, z) {
 
   const btn = h(doc, 'button', {
     type: 'button', 'data-role': 'sid', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', title: tip, 'aria-label': 'switch session', 'data-field': id ? 'session.id' : null,
-    style: `${look};background:none;border:0;padding:0;margin:0;cursor:pointer;letter-spacing:inherit;text-align:left`, text,
+    style: `${look};background:none;border:0;padding:${3 * z}px ${6 * z}px;margin:${-3 * z}px ${-6 * z}px;cursor:pointer;letter-spacing:inherit;text-align:left`, text,
   });
   let list = null;
   let backdrop = null;
@@ -86,32 +86,40 @@ function sessionId(doc, el, data, z) {
     el.dispatchEvent(new Custom('aihud:select-session', { bubbles: true, detail: { session_id: sessionIdOrNull } }));
   };
   const cell = (text, css) => h(doc, 'span', { text, style: css });
-  const row = (sid, cells, active) => {
+  // row = line 1 (id left, last activity right, never cut) + line 2 (label over the full width, cut at the START with
+  // "…": the outer span runs rtl so the ellipsis sits left, the inner span isolates the text as ltr; full text in title=)
+  const row = (sid, lines, active) => {
     const r = h(doc, 'button', {
       type: 'button', role: 'option', 'data-session': sid == null ? '' : sid, 'aria-selected': String(active),
-      style: 'display:flex;gap:10px;align-items:baseline;width:100%;box-sizing:border-box;background:none;border:0;'
-        + `margin:0;padding:${3 * z}px 10px;cursor:pointer;font:inherit;text-align:left;`
+      style: 'display:block;width:100%;box-sizing:border-box;background:none;border:0;'
+        + `margin:0;padding:${3.5 * z}px 10px;cursor:pointer;font:inherit;text-align:left;`
         + `color:var(--aihud-${active ? 'text' : 'dim'});font-weight:${active ? 600 : 400}`,
-    }, cells);
+    }, lines);
     r.addEventListener('click', () => pick(sid));
     return r;
+  };
+  const twoLines = (s, active) => {
+    const label = s.title ? String(s.title) : s.project_slug ? String(s.project_slug) : '';
+    return [
+      h(doc, 'span', { style: `display:flex;justify-content:space-between;align-items:baseline;gap:${12 * z}px;line-height:${15 * z}px` },
+        cell(String(s.session_id).slice(0, 8), `font-family:var(--aihud-font-mono);flex:none;font-weight:${active ? 700 : 400}`),
+        cell(age(s.age_seconds), 'flex:none;color:var(--aihud-dim);font-weight:400')),
+      h(doc, 'span', { 'data-label': '', title: label, style: `display:block;direction:rtl;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:${10.5 * z}px;line-height:${14 * z}px;color:var(--aihud-dim);font-weight:400` },
+        h(doc, 'span', { text: label, style: 'direction:ltr;unicode-bidi:isolate' })),
+    ];
   };
   btn.addEventListener('click', () => {
     if (list) { close(); return; }
     const sessions = hud.sessions;
     list = h(doc, 'div', {
       role: 'listbox', 'data-role': 'session-list',
-      style: 'position:fixed;z-index:10;box-sizing:border-box;min-width:150px;max-width:calc(100vw - 8px);overflow:auto;'
+      style: `position:fixed;z-index:10;box-sizing:border-box;width:${280 * z}px;max-width:calc(100vw - ${8 * z}px);overflow:auto;`
         + 'background:var(--aihud-panel);color:var(--aihud-text);border:1px solid var(--aihud-line);'
         + `border-radius:var(--aihud-radius);padding:4px 0;font-family:var(--aihud-font);font-size:${11 * z}px;`
         + 'font-variant-numeric:tabular-nums;box-shadow:0 8px 24px color-mix(in srgb, var(--aihud-bg) 70%, transparent)',
     },
-    row(null, [cell('follow newest', 'flex:1')], !hud.pinned),
-    sessions.map((s) => row(String(s.session_id), [
-      cell(String(s.session_id).slice(0, 8), 'font-family:var(--aihud-font-mono)'),
-      cell(s.title ? String(s.title) : '', 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--aihud-dim);font-weight:400'),
-      cell(age(s.age_seconds), 'color:var(--aihud-dim);font-weight:400'),
-    ], s.session_id === hud.current)));
+    row(null, [cell('follow newest', 'display:block')], !hud.pinned),
+    sessions.map((s) => row(String(s.session_id), twoLines(s, s.session_id === hud.current), s.session_id === hud.current)));
     // a transparent full-window layer behind the list: a click anywhere else closes it; it dies with `el`
     backdrop = h(doc, 'div', { 'data-role': 'session-backdrop', style: 'position:fixed;inset:0;z-index:9' });
     backdrop.addEventListener('click', close);
@@ -121,10 +129,12 @@ function sessionId(doc, el, data, z) {
     const b = btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
     const win = doc.defaultView;
     if (b && win) {
-      const w = list.offsetWidth || 0;
-      list.style.left = `${Math.max(4, Math.min(b.left, win.innerWidth - w - 4))}px`;
-      list.style.top = `${b.bottom + 4}px`;
-      list.style.maxHeight = `${Math.max(60, win.innerHeight - b.bottom - 8)}px`;
+      const vw = win.innerWidth || 0;
+      const w = vw ? Math.min(280 * z, vw - 8 * z) : 280 * z;   // never wider than the window
+      list.style.width = `${w}px`;
+      list.style.left = `${vw ? Math.min(Math.max(b.left, 4 * z), Math.max(4 * z, vw - w - 4 * z)) : Math.max(4, b.left)}px`;
+      list.style.top = `${b.bottom + 4 * z}px`;
+      list.style.maxHeight = `${Math.max(60, win.innerHeight - b.bottom - 8 * z)}px`;
     }
   });
   return btn;
